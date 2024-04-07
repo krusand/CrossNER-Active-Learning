@@ -169,7 +169,7 @@ def getEntsForPredictions(df: pd.DataFrame) -> list[list[str]]:
     
 
 
-def main():
+def main() -> None:
     return None
 
 if __name__ == '__main__':
