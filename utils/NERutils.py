@@ -122,6 +122,20 @@ def encodeDataFrame(df: pd.DataFrame, tokenizer: AutoTokenizer, tag2index: dict,
 #*****   Predictions   *****
 #***************************
 
+def readPredictions(path: str, sep: str) -> list[list[str]]:
+    """
+    Converts predictions to a list of lists containing entity tags
+
+    :param path: path to file containing predictions
+    :param sep: separator used in the file containing the predictions 
+
+    :returns: a list of lists, where each list contains tags
+    """
+
+    file = pd.read_csv(path, sep=sep)
+
+    entsList = []
+
 
 def getEntsForPredictions(df: pd.DataFrame) -> list[list[str]]:
     """
