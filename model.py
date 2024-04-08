@@ -4,6 +4,9 @@ from transformers.modeling_outputs import TokenClassifierOutput
 from transformers.models.bert.modeling_bert import BertModel
 from transformers.models.bert.modeling_bert import BertPreTrainedModel
 
+#**********************
+#***   Model
+
 class BertForTokenClassification(BertPreTrainedModel):
     config_class = BertConfig
 
