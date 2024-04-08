@@ -147,10 +147,13 @@ def readPredictions(path: str, sep: str) -> list[list[str]]:
 
     :returns: a list of lists, where each list contains tags
     """
+    
+    with open(path, 'r', encoding = 'utf-8') as file:
+        entsList = [line.strip().split(sep) for line in file]
+        file.close()
+    
+    return entsList
 
-    file = pd.read_csv(path, sep=sep)
-
-    entsList = []
 
 
 def getEntsForPredictions(df: pd.DataFrame) -> list[list[str]]:
