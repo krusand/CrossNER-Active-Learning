@@ -57,7 +57,7 @@ def findMaxLength(df: pd.DataFrame, tokenizer: AutoTokenizer) -> int:
     return max([len(tokenizer(line["text"])["input_ids"]) for line in df.iloc])
    
 
-def encodeDataFrame(df: pd.DataFrame, tokenizer: AutoTokenizer, tag2index: dict, max_length: int = 500, filter: str = None) -> pd.DataFrame:
+def encodeDataFrame(df: pd.DataFrame, tokenizer: AutoTokenizer, tag2index: dict, max_length: int = 512, filter: str = None) -> pd.DataFrame:
     """
     
     :param df: Pandas DataFrame
