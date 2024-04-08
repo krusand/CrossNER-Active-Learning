@@ -55,10 +55,10 @@ class NERdataset(Dataset):
         item = {key: torch.tensor(val[index]) for key, val in self.encodings.items()}
         return item
 
+
 #************************
 #******  ML utils  ******
 #************************
-
 
 def findMaxLength(df: pd.DataFrame, tokenizer: AutoTokenizer) -> int:
     """
@@ -134,6 +134,7 @@ def encodeDataFrame(df: pd.DataFrame, tokenizer: AutoTokenizer, tag2index: dict,
     
     return pd.DataFrame(encoded_list)
 
+
 #***************************
 #*****   Predictions   *****
 #***************************
@@ -153,7 +154,6 @@ def readPredictions(path: str, sep: str) -> list[list[str]]:
         file.close()
     
     return entsList
-
 
 
 def getEntsForPredictions(df: pd.DataFrame) -> list[list[str]]:
