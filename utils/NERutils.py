@@ -76,7 +76,7 @@ def encodeDataFrame(df: pd.DataFrame, tokenizer: AutoTokenizer, tag2index: dict,
         return end_idx <= (token_start + len(token))
 
     encoded_list = []
-    if filter != None:
+    if filter is not None:
         df = df[filter]
     for row in df.iloc:
             
@@ -115,10 +115,8 @@ def encodeDataFrame(df: pd.DataFrame, tokenizer: AutoTokenizer, tag2index: dict,
         labels = [tag2index[label] for label in labels + ["O"]]
         tokenized_text["labels"] = labels
         encoded_list.append(tokenized_text)
+    
     return pd.DataFrame(encoded_list)
-
-
-
 
 #***************************
 #*****   Predictions   *****
@@ -166,7 +164,8 @@ def getEntsForPredictions(df: pd.DataFrame) -> list[list[str]]:
     for row in df.iloc:
         ent_list.append(entsToList(row))
     return ent_list
-    
+
+
 
 
 def main() -> None:
