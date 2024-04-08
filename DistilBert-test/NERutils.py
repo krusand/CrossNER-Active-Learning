@@ -1,6 +1,5 @@
 # Import
 import pandas as pd
-import numpy as np
 import torch
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
@@ -41,7 +40,8 @@ def getVocabFeatures(df: pd.DataFrame) -> tuple[list, dict, dict]:
     return tags, index2tag, tag2index
 
 
-""" class NERdataset(Dataset):
+
+class NERdataset(Dataset):
     def __init__(self, dataset_path: str, tokenizer: AutoTokenizer) -> None:
         self.__df = readDataset(dataset_path)
         self.tags, self.index2tag, self.tag2index = getVocabFeatures(self.__df)
@@ -53,29 +53,12 @@ def getVocabFeatures(df: pd.DataFrame) -> tuple[list, dict, dict]:
     
     def __getitem__(self, index: int) -> dict[torch.Tensor, torch.Tensor, torch.Tensor]:
         item = {key: torch.tensor(val[index]) for key, val in self.encodings.items()}
-        return item """
-    
-class NERdataset(Dataset):
-    def __init__(self, dataset_path: str, tokenizer: AutoTokenizer, unlabeled_frac: float = None) -> None:
-        self.__df = readDataset(dataset_path)
-        self.tags, self.index2tag, self.tag2index = getVocabFeatures(self.__df)
-        self.MAX_LENGTH = max(findMaxLength(self.__df, tokenizer), 512)
-        self.encodings = encodeDataFrame(self.__df, tokenizer, self.tag2index, self.MAX_LENGTH)
-
-        # Set all as unlabeled
-        self.unlabeled_mask = np.ones(len(self.__df))
-
-    def __len__(self) -> int:
-        return len(self.__df)
-    
-    def __getitem__(self, index: int) -> dict[torch.Tensor, torch.Tensor, torch.Tensor]:
-        item = {key: torch.tensor(val[index]) for key, val in self.encodings.items()}
         return item
-
 
 #************************
 #******  ML utils  ******
 #************************
+
 
 def findMaxLength(df: pd.DataFrame, tokenizer: AutoTokenizer) -> int:
     """
@@ -151,7 +134,6 @@ def encodeDataFrame(df: pd.DataFrame, tokenizer: AutoTokenizer, tag2index: dict,
     
     return pd.DataFrame(encoded_list)
 
-
 #***************************
 #*****   Predictions   *****
 #***************************
@@ -171,6 +153,7 @@ def readPredictions(path: str, sep: str) -> list[list[str]]:
         file.close()
     
     return entsList
+
 
 
 def getEntsForPredictions(df: pd.DataFrame) -> list[list[str]]:

@@ -16,10 +16,10 @@ def testPreds(predPath: str, labelsPath: str) -> float:
     :param predPath: path to file containing predictions. Must be .parquet format
     :param labelsPath: path to file containing gold labels. Must be .parquet format
 
-    :returns: span F1-score
+    :returns: F1-score
     """
 
-    preds = NU.readDataset(predPath)
+    preds = NU.readPredictions(predPath, sep=',')
     test = NU.readDataset(labelsPath)
 
     predsEntList = NU.getEntsForPredictions(test)
