@@ -100,7 +100,7 @@ class BertForTokenClassification(BertPreTrainedModel):
         
         for epoch in range(num_epochs):
             self.train_loop(data_loader, device, optimizer)
-            print("Done!")
+            print(f"{epoch} of {num_epochs} epochs")
 
 
     
