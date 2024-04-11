@@ -163,11 +163,11 @@ class BertForTokenClassification(BertPreTrainedModel):
         
         for epoch in range(num_epochs):
             self.train_loop(data_loader, device, optimizer)
-            print(f"{epoch} of {num_epochs} epochs")
+            print(f"{epoch+1} of {num_epochs} epochs")
 
     def test(self, data_loader, device):
 
-        self.val_loop(self, data_loader, device)
+        self.val_loop(data_loader, device)
 
 
     
