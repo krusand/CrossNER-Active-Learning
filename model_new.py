@@ -152,12 +152,12 @@ class BertForTokenClassification(BertPreTrainedModel):
                 correct += (targets == predictions).type(torch.float).sum().item()
         
         # Caluclate training loss and accuracy for the current epoch
-        train_loss = epoch_loss/num_batches
-        train_acc = correct/size
+        val_loss = epoch_loss/num_batches
+        val_acc = correct/size
         
         # Save loss and accuracy to history
-        self.training_loss.append(train_loss)
-        self.training_acc.append(train_acc)
+        self.validation_loss.append(val_loss)
+        self.validation_acc.append(val_acc)
 
     def fit(self, num_epochs, data_loader, device, optimizer):
         
