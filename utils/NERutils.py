@@ -56,8 +56,11 @@ def getVocabFeatures(df: pd.DataFrame) -> tuple[list, dict, dict]:
         return item """
     
 class NERdataset(Dataset):
-    def __init__(self, dataset_path: str, tokenizer: AutoTokenizer, unlabeled_frac: float = None) -> None:
+    def __init__(self, dataset_path: str, tokenizer: AutoTokenizer, unlabeled_frac: float = None, filter: str = None) -> None:
         self.__df = readDataset(dataset_path)
+        if filter is not None:
+            self.__df = self.__df[self.__df['dagw_domain']==filter]
+        self.df = self.__df
         self.tags, self.index2tag, self.tag2index = getVocabFeatures(self.__df)
         self.MAX_LENGTH = max(findMaxLength(self.__df, tokenizer), 512)
         self.encodings = encodeDataFrame(self.__df, tokenizer, self.tag2index, self.MAX_LENGTH)
@@ -91,7 +94,7 @@ def findMaxLength(df: pd.DataFrame, tokenizer: AutoTokenizer) -> int:
     return max([len(tokenizer(line["text"])["input_ids"]) for line in df.iloc])
    
 
-def encodeDataFrame(df: pd.DataFrame, tokenizer: AutoTokenizer, tag2index: dict, max_length: int = 512, filter: str = None) -> pd.DataFrame:
+def encodeDataFrame(df: pd.DataFrame, tokenizer: AutoTokenizer, tag2index: dict, max_length: int = 512) -> pd.DataFrame:
     """
     
     :param df: Pandas DataFrame
@@ -110,8 +113,7 @@ def encodeDataFrame(df: pd.DataFrame, tokenizer: AutoTokenizer, tag2index: dict,
         return end_idx <= (token_start + len(token))
 
     encoded_list = []
-    if filter is not None:
-        df = df[filter]
+
     for row in df.iloc:
             
         ents = row["ents"]
@@ -146,8 +148,11 @@ def encodeDataFrame(df: pd.DataFrame, tokenizer: AutoTokenizer, tag2index: dict,
 
             token_start += len(token)
 
-        labels = [tag2index[label] for label in labels + ["O"]]
-        tokenized_text["labels"] = labels
+        try:
+            labels_new = [tag2index[label] for label in labels + ["O"]]
+        except:
+            print(labels)
+        tokenized_text["labels"] = labels_new
         encoded_list.append(tokenized_text)
     
     return pd.DataFrame(encoded_list)
