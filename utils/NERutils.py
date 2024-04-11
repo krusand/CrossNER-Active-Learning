@@ -34,7 +34,18 @@ def getVocabFeatures(df: pd.DataFrame) -> tuple[list, dict, dict]:
     :returns: a list containing NER labels, a dictionary mapping index to tag, a dictionary mapping tag to index
     """
 
-    tags = ["O"] + list(set([x[0]["label"] for x in df["ents"] if len(x)>0]))
+    tags = {"0"}
+    for row in df.iloc:
+        ents = row["ents"]
+        if len(ents) == 0:
+            continue
+        temp_tag = set()
+        for ent in ents:
+            temp_tag.add(ent["label"])
+        tags.update(temp_tag)
+
+    tags = list(tags)
+
     index2tag = {idx: tag for idx, tag in enumerate(tags)}
     tag2index = {tag: idx for idx, tag in enumerate(tags)}
 
