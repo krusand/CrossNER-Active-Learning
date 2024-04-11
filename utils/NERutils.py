@@ -70,6 +70,7 @@ class NERdataset(Dataset):
     
     def __getitem__(self, index: int) -> dict[torch.Tensor, torch.Tensor, torch.Tensor]:
         item = {key: torch.tensor(val[index]) for key, val in self.encodings.items()}
+        item.update({"index": index})
         return item
 
 
