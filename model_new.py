@@ -54,11 +54,13 @@ class BertForTokenClassification(BertPreTrainedModel):
         # Apply classifier to encoder representation
         sequence_output = self.dropout(outputs[0])
         logits = self.classifier(sequence_output)
+        
         # Calculate losses
         loss = None
         if labels is not None:
             loss_fct = nn.CrossEntropyLoss()
             loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+        
         # Return model output object
         return TokenClassifierOutput(
             loss=loss,
@@ -70,6 +72,11 @@ class BertForTokenClassification(BertPreTrainedModel):
     def train_loop(self, data_loader, device, optimizer):
         self.train()
 
+        # Initialize parameters for calculating training loss and accuracy
+        num_batches = len(data_loader)
+        size = len(data_loader.dataset)
+        epoch_loss, correct = 0, 0
+
         for idx, batch in enumerate(tqdm(data_loader)):
             ids = batch["input_ids"].to(device, dtype=torch.long)
             mask = batch["attention_mask"].to(device, dtype=torch.long)
@@ -80,27 +87,87 @@ class BertForTokenClassification(BertPreTrainedModel):
                             labels = targets)
             
             loss, tr_logits = outputs.loss, outputs.logits
-            self.training_loss.append(loss.item())
 
+            # Flatten targets and predictions
             flattened_targets = targets.view(-1) # shape (batch_size * seq_len,)
             active_logits = tr_logits.view(-1, self.num_labels) # shape (batch_size * seq_len, num_labels)
             flattened_predictions = torch.argmax(active_logits, axis=1) # shape (batch_size * seq_len,)
             
-            # now, use mask to determine where we should compare predictions with targets (includes [CLS] and [SEP] token predictions)
+            # Mask predictions and targets (includes [CLS] and [SEP] token predictions)
             active_accuracy = mask.view(-1) == 1 # active accuracy is also of shape (batch_size * seq_len,)
             targets = torch.masked_select(flattened_targets, active_accuracy)
             predictions = torch.masked_select(flattened_predictions, active_accuracy)
-            
+
+            # Backpropagation
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
 
+            # Calculate train loss and accuracy
+            epoch_loss += loss.item()
+            correct += (targets == predictions).type(torch.float).sum().item()
+        
+        # Caluclate training loss and accuracy for the current epoch
+        train_loss = epoch_loss/num_batches
+        train_acc = correct/size
+        
+        # Save loss and accuracy to history
+        self.training_loss.append(train_loss)
+        self.training_acc.append(train_acc)
 
-    def finetune(self, num_epochs, data_loader, device, optimizer):
+    def val_loop(self, data_loader, device):
+        self.eval()
+
+        # Initialize parameters for calculating training loss and accuracy
+        num_batches = len(data_loader)
+        size = len(data_loader.dataset)
+        epoch_loss, correct = 0, 0
+
+        with torch.no_grad():
+            for idx, batch in enumerate(data_loader):
+                
+                ids = batch["input_ids"].to(device, dtype=torch.long)
+                mask = batch["attention_mask"].to(device, dtype=torch.long)
+                targets = batch["labels"].to(device, dtype=torch.long)
+                
+                outputs = self.forward(input_ids = ids,
+                                attention_mask = mask,
+                                labels = targets)
+                
+                # Save validation loss
+                loss, tr_logits = outputs.loss, outputs.logits
+
+                # Flatten targets and predictions
+                flattened_targets = targets.view(-1) # shape (batch_size * seq_len,)
+                active_logits = tr_logits.view(-1, self.num_labels) # shape (batch_size * seq_len, num_labels)
+                flattened_predictions = torch.argmax(active_logits, axis=1) # shape (batch_size * seq_len,)
+                
+                # Mask predictions and targets (includes [CLS] and [SEP] token predictions)
+                active_accuracy = mask.view(-1) == 1 # active accuracy is also of shape (batch_size * seq_len,)
+                targets = torch.masked_select(flattened_targets, active_accuracy)
+                predictions = torch.masked_select(flattened_predictions, active_accuracy)
+
+                # Calculate train loss and accuracy
+                epoch_loss += loss.item()
+                correct += (targets == predictions).type(torch.float).sum().item()
+        
+        # Caluclate training loss and accuracy for the current epoch
+        train_loss = epoch_loss/num_batches
+        train_acc = correct/size
+        
+        # Save loss and accuracy to history
+        self.training_loss.append(train_loss)
+        self.training_acc.append(train_acc)
+
+    def fit(self, num_epochs, data_loader, device, optimizer):
         
         for epoch in range(num_epochs):
             self.train_loop(data_loader, device, optimizer)
             print(f"{epoch} of {num_epochs} epochs")
+
+    def test(self, data_loader, device):
+
+        self.val_loop(self, data_loader, device)
 
 
     
