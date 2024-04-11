@@ -34,7 +34,7 @@ def getVocabFeatures(df: pd.DataFrame) -> tuple[list, dict, dict]:
     :returns: a list containing NER labels, a dictionary mapping index to tag, a dictionary mapping tag to index
     """
 
-    tags = {"0"}
+    tags = set()
     for row in df.iloc:
         ents = row["ents"]
         if len(ents) == 0:
@@ -44,7 +44,7 @@ def getVocabFeatures(df: pd.DataFrame) -> tuple[list, dict, dict]:
             temp_tag.add(ent["label"])
         tags.update(temp_tag)
 
-    tags = list(tags)
+    tags = ["O"] + list(tags)
 
     index2tag = {idx: tag for idx, tag in enumerate(tags)}
     tag2index = {tag: idx for idx, tag in enumerate(tags)}
@@ -69,10 +69,10 @@ def getVocabFeatures(df: pd.DataFrame) -> tuple[list, dict, dict]:
 class NERdataset(Dataset):
     def __init__(self, dataset_path: str, tokenizer: AutoTokenizer, unlabeled_frac: float = None, filter: str = None) -> None:
         self.__df = readDataset(dataset_path)
+        self.tags, self.index2tag, self.tag2index = getVocabFeatures(self.__df)
+
         if filter is not None:
             self.__df = self.__df[self.__df['dagw_domain']==filter]
-        self.df = self.__df
-        self.tags, self.index2tag, self.tag2index = getVocabFeatures(self.__df)
         self.MAX_LENGTH = max(findMaxLength(self.__df, tokenizer), 512)
         self.encodings = encodeDataFrame(self.__df, tokenizer, self.tag2index, self.MAX_LENGTH)
 
@@ -159,11 +159,8 @@ def encodeDataFrame(df: pd.DataFrame, tokenizer: AutoTokenizer, tag2index: dict,
 
             token_start += len(token)
 
-        try:
-            labels_new = [tag2index[label] for label in labels + ["O"]]
-        except:
-            print(labels)
-        tokenized_text["labels"] = labels_new
+        labels = [tag2index[label] for label in labels + ["O"]]
+        tokenized_text["labels"] = labels
         encoded_list.append(tokenized_text)
     
     return pd.DataFrame(encoded_list)
