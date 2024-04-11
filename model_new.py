@@ -78,6 +78,7 @@ class BertForTokenClassification(BertPreTrainedModel):
         epoch_loss, correct = 0, 0
 
         for idx, batch in enumerate(tqdm(data_loader)):
+            print(idx)
             ids = batch["input_ids"].to(device, dtype=torch.long)
             mask = batch["attention_mask"].to(device, dtype=torch.long)
             targets = batch["labels"].to(device, dtype=torch.long)
