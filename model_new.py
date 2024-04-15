@@ -1,3 +1,6 @@
+import numpy as np
+import pandas as pd
+
 import torch
 import torch.nn as nn
 from transformers import BertConfig
@@ -8,6 +11,63 @@ from transformers.models.bert.modeling_bert import BertPreTrainedModel
 # Timetracker
 from tqdm import tqdm
 
+
+#**************************
+#***   Early Stopping   ***
+#**************************
+
+# Implementation from: https://github.com/Bjarten/early-stopping-pytorch/blob/master/pytorchtools.py
+
+class EarlyStopping:
+    """Early stops the training if validation loss doesn't improve after a given patience."""
+    def __init__(self, patience=3, verbose=False, delta=0, path='checkpoint.pt', trace_func=print):
+        """
+        Args:
+            patience (int): How long to wait after last time validation loss improved.
+                            Default: 7
+            verbose (bool): If True, prints a message for each validation loss improvement. 
+                            Default: False
+            delta (float): Minimum change in the monitored quantity to qualify as an improvement.
+                            Default: 0
+            path (str): Path for the checkpoint to be saved to.
+                            Default: 'checkpoint.pt'
+            trace_func (function): trace print function.
+                            Default: print            
+        """
+        self.patience = patience
+        self.verbose = verbose
+        self.counter = 0
+        self.best_score = None
+        self.early_stop = False
+        self.val_loss_min = np.Inf
+        self.delta = delta
+        self.path = path
+        self.trace_func = trace_func
+    
+    def __call__(self, val_loss, model):
+
+        score = -val_loss
+
+        if self.best_score is None:
+            self.best_score = score
+            self.save_checkpoint(val_loss, model)
+        elif score < self.best_score + self.delta:
+            self.counter += 1
+            self.trace_func(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            if self.counter >= self.patience:
+                self.early_stop = True
+        else:
+            self.best_score = score
+            self.save_checkpoint(val_loss, model)
+            self.counter = 0
+
+    def save_checkpoint(self, val_loss, model):
+        '''Saves model when validation loss decrease.'''
+        if self.verbose:
+            self.trace_func(f'Validation loss decreased ({self.val_loss_min:.6f} --> {val_loss:.6f}).  Saving model ...')
+        torch.save(model.state_dict(), self.path)
+        self.val_loss_min = val_loss
+
 #*****************
 #***   Model   ***
 #*****************
@@ -15,7 +75,7 @@ from tqdm import tqdm
 class BertForTokenClassification(BertPreTrainedModel):
     config_class = BertConfig
 
-    def __init__(self, config, tags):
+    def __init__(self, config, tags, patience=3, delta=0, verbose=False):
         super().__init__(config)
         self.num_labels = len(tags)
         
@@ -28,6 +88,11 @@ class BertForTokenClassification(BertPreTrainedModel):
         
         # Load and initialize weights
         self.init_weights()
+
+        # Define patience and delta for early stopping
+        self.patience = patience
+        self.delta = delta
+        self.verbose = verbose
 
         # Save accuracy and loss
         self.training_acc = []
@@ -161,9 +226,24 @@ class BertForTokenClassification(BertPreTrainedModel):
 
     def fit(self, num_epochs, data_loader, device, optimizer):
         
+        early_stopping = EarlyStopping(patience=self.patience, verbose=self.verbose, delta=self.delta)
+
         for epoch in range(num_epochs):
+
+            if self.verbose:
+                print(f"Epoch {epoch+1} of {num_epochs} epochs")
+           
             self.train_loop(data_loader, device, optimizer)
-            print(f"{epoch+1} of {num_epochs} epochs")
+            self.val_loop(data_loader, device)
+            
+            # Early stopping
+            early_stopping(self.validation_loss[-1], self)
+
+            if early_stopping.early_stop:
+                print("Early stopping")
+                break
+
+        print("Done!")
 
     def test(self, data_loader, device):
 
