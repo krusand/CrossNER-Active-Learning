@@ -245,6 +245,38 @@ class BertForTokenClassification(BertPreTrainedModel):
 
         print("Done!")
 
+
+    def predict(self, data_loader, device):
+        self.eval()
+
+        # Initialize parameters for calculating training loss and accuracy
+        logits = []
+        masks = []
+        indices = []
+        size = len(data_loader.dataset)
+
+        with torch.no_grad():
+            for idx, batch in tqdm(enumerate(data_loader), total=size):
+                
+                ids = batch["input_ids"].to(device, dtype=torch.long)
+                mask = batch["attention_mask"].to(device, dtype=torch.long)
+                # targets = batch["labels"].to(device, dtype=torch.long)
+                
+                outputs = self(ids, mask)
+                
+                # Save validation loss
+                # print(type(outputs[0]))
+                # outputs = [o[torch.nonzero(m)] for o,m in zip(outputs[0], mask)]
+                # print(outputs[0].shape, mask.shape)
+                # print(torch.nonzero(mask))
+                logits.extend(outputs[0])
+                masks.extend(mask)
+                indices.extend(batch["index"])
+
+        return (logits, masks, indices)
+        
+
+
     def test(self, data_loader, device):
 
         self.val_loop(data_loader, device)
