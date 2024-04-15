@@ -248,6 +248,21 @@ class BertForTokenClassification(BertPreTrainedModel):
 
 
     def predict(self, data_loader, device):
+        """Predict logits with a dataloader
+
+        Args:
+            data_loader (torch.utils.data.DataLoader): Dataloader for the data to predict
+            device (torch.device): Pytorch device used to calculate predictions
+
+        Returns:
+            tuple (list,list,list) : Tuple containing the predicted logits, corresponding masks, and indices.
+
+        Returned elements:
+            - Logits: The raw outputs of the model before applying any activation function.
+            - Masks: Masks indicating which parts of the input data is padding. This can be used, to filter them out in further calculations
+            - Indices: Indices from the original dataset. 
+
+        """
         self.eval()
 
         # Initialize parameters for calculating training loss and accuracy
