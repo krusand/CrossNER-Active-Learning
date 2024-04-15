@@ -257,7 +257,7 @@ class BertForTokenClassification(BertPreTrainedModel):
         size = len(data_loader.dataset)
 
         with torch.no_grad():
-            for idx, batch in tqdm(enumerate(data_loader), total=size):
+            for idx, batch in tqdm(enumerate(data_loader)):
                 
                 ids = batch["input_ids"].to(device, dtype=torch.long)
                 mask = batch["attention_mask"].to(device, dtype=torch.long)
