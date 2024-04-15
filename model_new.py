@@ -143,7 +143,6 @@ class BertForTokenClassification(BertPreTrainedModel):
         epoch_loss, correct = 0, 0
 
         for idx, batch in enumerate(tqdm(data_loader)):
-            print(f"Number of batches: {num_batches}")
             ids = batch["input_ids"].to(device, dtype=torch.long)
             mask = batch["attention_mask"].to(device, dtype=torch.long)
             targets = batch["labels"].to(device, dtype=torch.long)
@@ -225,7 +224,7 @@ class BertForTokenClassification(BertPreTrainedModel):
         self.validation_loss.append(val_loss)
         self.validation_acc.append(val_acc)
 
-    def fit(self, num_epochs, data_loader, device, optimizer):
+    def fit(self, num_epochs, train_data_loader, val_data_loader, device, optimizer):
         
         early_stopping = EarlyStopping(patience=self.patience, verbose=self.verbose, delta=self.delta)
 
@@ -234,8 +233,8 @@ class BertForTokenClassification(BertPreTrainedModel):
             if self.verbose:
                 print(f"Epoch {epoch+1} of {num_epochs} epochs")
            
-            self.train_loop(data_loader, device, optimizer)
-            self.val_loop(data_loader, device)
+            self.train_loop(train_data_loader, device, optimizer)
+            self.val_loop(val_data_loader, device)
             
             # Early stopping
             early_stopping(self.validation_loss[-1], self)
