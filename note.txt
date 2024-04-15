@@ -1,0 +1,16 @@
+https://aclanthology.org/W17-2630.pdf
+
+Active learning for NER (Reweighting tokens, BERT)
+https://aclanthology.org/2023.findings-emnlp.847.pdf
+
+https://aclanthology.org/2023.eacl-main.160.pdf
+
+Using AL for fine-tuning BERT
+https://aclanthology.org/2020.emnlp-main.638.pdf
+
+
+
+Not so relevant
+
+Multi-task active learning
+https://aclanthology.org/2022.tacl-1.70.pdf
