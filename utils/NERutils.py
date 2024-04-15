@@ -231,6 +231,57 @@ def getEntsForPredictions(df: pd.DataFrame) -> list[list[str]]:
 
 
 
+#***************************
+#*****   Evaluation   *****
+#***************************
+
+def toSpans(tags: list[list]) -> set:
+    """
+    Creates a set of spans in the format {start-end: label, ...} from a tag list
+
+    :param tags: a list of lists containing the tags for each sentence 
+    """
+    
+    spans = set()
+    for beg in range(len(tags)):
+        if tags[beg][0] == 'B':
+            end = beg
+            for end in range(beg+1, len(tags)):
+                if tags[beg][0] != 'I':
+                    break
+            spans.add(str(beg) + '-' + str(end) + ':' + tags[beg][2:])
+    return spans
+
+
+def getInstanceScores(predPath: str, goldPath:str) -> float:
+    """
+    Computes the span F1-score by comparing predicted spans to the gold spans
+
+    :param predPath: path to the file containing predictions
+    :param goldPath: path to the file containing the gold labels
+    """
+
+    gold = readDataset(goldPath)
+    pred =  readDataset(predPath)
+    goldEnts = getEntsForPredictions(gold)
+    predEnts =  getEntsForPredictions(pred)
+    entScores = []
+    tp = 0
+    fp = 0
+    fn = 0
+    for goldEnt, predEnt in zip(goldEnts, predEnts):
+        goldSpans = toSpans(goldEnt)
+        predSpans = toSpans(predEnt)
+        overlap = len(goldSpans.intersection(predSpans))
+        tp += overlap
+        fp += len(predSpans) - overlap
+        fn += len(goldSpans) - overlap
+        
+    prec = 0.0 if tp+fp == 0 else tp/(tp+fp)
+    rec = 0.0 if tp+fn == 0 else tp/(tp+fn)
+    f1 = 0.0 if prec+rec == 0.0 else 2 * (prec * rec) / (prec + rec)
+    return f1
+
 
 def main() -> None:
     return None
