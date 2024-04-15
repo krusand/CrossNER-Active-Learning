@@ -25,7 +25,18 @@ def least_confidece(model, device, data_loader, query_size = 10):
     return np.asarray(indices)[sorted_idx][0:query_size]
 
 def margin_of_confidence(model, device, data_loader, query_size):
-    pass
+    logits, mask, indices = model.predict(data_loader, device)
+
+    probabilities = [F.softmax(sentence, dim = 1) for sentence in logits]
+
+    toptwo = [torch.topk(sentence, 2, dim=1)[0] for sentence in probabilities]
+    difference = [torch.abs(sentence[:,0]-sentence[:,1]) for sentence in toptwo]
+
+    summed_margins = [torch.dot(c, m.float()).cpu() for c,m in zip(difference, mask)]
+
+    sorted_idx = np.argsort(summed_margins)
+    
+    return np.asarray(indices)[sorted_idx][0:query_size]
 
 def ratio(model, device, data_loader, query_size):
     pass
