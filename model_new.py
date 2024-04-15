@@ -233,7 +233,9 @@ class BertForTokenClassification(BertPreTrainedModel):
             if self.verbose:
                 print(f"Epoch {epoch+1} of {num_epochs} epochs")
            
+            print("Train")
             self.train_loop(train_data_loader, device, optimizer)
+            print("Validate")
             self.val_loop(val_data_loader, device)
             
             # Early stopping
