@@ -53,7 +53,7 @@ class EarlyStopping:
             self.save_checkpoint(val_loss, model)
         elif score < self.best_score + self.delta:
             self.counter += 1
-            self.trace_func(f'EarlyStopping counter: {self.counter} out of {self.patience}')
+            self.trace_func(f'EarlyStopping counter: {self.counter} out of {self.patience}\nValidation loss increased to {val_loss:.6f}.')
             if self.counter >= self.patience:
                 self.early_stop = True
         else:
@@ -143,6 +143,7 @@ class BertForTokenClassification(BertPreTrainedModel):
         epoch_loss, correct = 0, 0
 
         for idx, batch in enumerate(tqdm(data_loader)):
+            print(f"Number of batches: {num_batches}")
             ids = batch["input_ids"].to(device, dtype=torch.long)
             mask = batch["attention_mask"].to(device, dtype=torch.long)
             targets = batch["labels"].to(device, dtype=torch.long)
@@ -280,8 +281,6 @@ class BertForTokenClassification(BertPreTrainedModel):
     def test(self, data_loader, device):
 
         self.val_loop(data_loader, device)
-
-
     
 #*******************
 #***   Dataset   ***
