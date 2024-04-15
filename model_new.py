@@ -260,7 +260,7 @@ class BertForTokenClassification(BertPreTrainedModel):
         Returned elements:
             - Logits: The raw outputs of the model before applying any activation function.
             - Masks: Masks indicating which parts of the input data is padding. This can be used, to filter them out in further calculations
-            - Indices: Indices from the original dataset. 
+            - Indices: Indices from the original dataset.
 
         """
         self.eval()
@@ -269,10 +269,12 @@ class BertForTokenClassification(BertPreTrainedModel):
         logits = []
         masks = []
         indices = []
-        size = len(data_loader.dataset)
+        # size = len(data_loader.dataset) / data_loader.batch_size
+        size = len(data_loader.sampler.indices) / data_loader.batch_size
+        size = np.ceil(size).astype("int")
 
         with torch.no_grad():
-            for idx, batch in tqdm(enumerate(data_loader)):
+            for idx, batch in tqdm(enumerate(data_loader), total=size):
                 
                 ids = batch["input_ids"].to(device, dtype=torch.long)
                 mask = batch["attention_mask"].to(device, dtype=torch.long)
