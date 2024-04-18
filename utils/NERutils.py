@@ -65,12 +65,23 @@ def getVocabFeatures(df: pd.DataFrame) -> tuple[list, dict, dict]:
     def __getitem__(self, index: int) -> dict[torch.Tensor, torch.Tensor, torch.Tensor]:
         item = {key: torch.tensor(val[index]) for key, val in self.encodings.items()}
         return item """
-    
-class NERdataset(Dataset):
-    def __init__(self, dataset_path: str, tokenizer: AutoTokenizer, unlabeled_frac: float = None, filter: str = None) -> None:
-        self.__df = readDataset(dataset_path)
-        self.tags, self.index2tag, self.tag2index = getVocabFeatures(self.__df)
 
+
+class NERdataset(Dataset):
+    def __init__(self, 
+                 dataset_path: str, 
+                 tokenizer: AutoTokenizer, 
+                 unlabeled_frac: float = None, 
+                 filter: str = None,
+                 tags = None,
+                 index2tag = None,
+                 tag2index = None) -> None:
+        self.__df = readDataset(dataset_path)
+        if tags is None and index2tag is None and tag2index is None:
+            self.tags, self.index2tag, self.tag2index = getVocabFeatures(self.__df)
+        else:
+            self.tags, self.index2tag, self.tag2index = tags, index2tag, tag2index
+        
         if filter is not None:
             self.__df = self.__df[self.__df['dagw_domain']==filter]
         self.MAX_LENGTH = max(findMaxLength(self.__df, tokenizer), 512)
@@ -235,13 +246,7 @@ def getEntsForPredictions(df: pd.DataFrame) -> list[list[str]]:
 #*****   Evaluation   *****
 #***************************
 
-def toSpans(tags: list[list]) -> set:
-    """
-    Creates a set of spans in the format {start-end: label, ...} from a tag list
-
-    :param tags: a list of lists containing the tags for each sentence 
-    """
-    
+def toSpans(tags):
     spans = set()
     for beg in range(len(tags)):
         if tags[beg][0] == 'B':
@@ -253,18 +258,11 @@ def toSpans(tags: list[list]) -> set:
     return spans
 
 
-def getInstanceScores(predPath: str, goldPath:str) -> float:
-    """
-    Computes the span F1-score by comparing predicted spans to the gold spans
-
-    :param predPath: path to the file containing predictions
-    :param goldPath: path to the file containing the gold labels
-    """
-
-    gold = readDataset(goldPath)
-    pred =  readDataset(predPath)
-    goldEnts = getEntsForPredictions(gold)
-    predEnts =  getEntsForPredictions(pred)
+def getF1ScoreFromPath(predPath: str, goldPath: str):
+    gold = nu.readDataset(goldPath)
+    pred =  nu.readDataset(predPath)
+    goldEnts = nu.getEntsForPredictions(gold)
+    predEnts =  nu.getEntsForPredictions(pred)
     entScores = []
     tp = 0
     fp = 0
@@ -281,6 +279,59 @@ def getInstanceScores(predPath: str, goldPath:str) -> float:
     rec = 0.0 if tp+fn == 0 else tp/(tp+fn)
     f1 = 0.0 if prec+rec == 0.0 else 2 * (prec * rec) / (prec + rec)
     return f1
+
+def getF1ScoreFromLists(golds:list, preds: list):
+    tp = 0
+    fp = 0
+    fn = 0
+    for goldEnt, predEnt in zip(golds, preds):
+        goldSpans = toSpans(goldEnt)
+        predSpans = toSpans(predEnt)
+        overlap = len(goldSpans.intersection(predSpans))
+        tp += overlap
+        fp += len(predSpans) - overlap
+        fn += len(goldSpans) - overlap
+        
+    prec = 0.0 if tp+fp == 0 else tp/(tp+fp)
+    rec = 0.0 if tp+fn == 0 else tp/(tp+fn)
+    f1 = 0.0 if prec+rec == 0.0 else 2 * (prec * rec) / (prec + rec)
+    return f1
+
+
+def evaluate_model(model, dataloader, device):
+        
+    batch_preds, batch_targets = [], []
+
+
+    with torch.no_grad():
+        for idx, batch in enumerate(dataloader):
+            ids = batch["input_ids"].to(device, dtype=torch.long)
+            mask = batch["attention_mask"].to(device, dtype=torch.long)
+            targets = batch["labels"].to(device, dtype=torch.long)
+            
+            outputs = model.forward(input_ids = ids,
+                            attention_mask = mask,
+                            labels = targets)
+            
+            # Save validation loss
+            loss, tr_logits = outputs.loss, outputs.logits
+
+            # Flatten targets and predictions
+            flattened_targets = targets.view(-1) # shape (batch_size * seq_len,)
+            active_logits = tr_logits.view(-1, model.num_labels) # shape (batch_size * seq_len, num_labels)
+            flattened_predictions = torch.argmax(active_logits, axis=1) # shape (batch_size * seq_len,)
+            
+            # Mask predictions and targets (includes [CLS] and [SEP] token predictions)
+            active_accuracy = mask.view(-1) == 1 # active accuracy is also of shape (batch_size * seq_len,)
+            targets = torch.masked_select(flattened_targets, active_accuracy)
+            predictions = torch.masked_select(flattened_predictions, active_accuracy)
+
+            batch_preds.append(predictions)
+            batch_targets.append(targets)
+
+    return torch.cat(batch_preds, dim=0).numpy(), torch.cat(batch_targets, dim=0).numpy()
+
+
 
 
 def main() -> None:
