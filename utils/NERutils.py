@@ -4,7 +4,7 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
-
+from tqdm import tqdm
 
 #****************************
 #***   Dataset features   ***
@@ -304,7 +304,7 @@ def evaluate_model(model, dataloader, device):
 
 
     with torch.no_grad():
-        for idx, batch in enumerate(dataloader):
+        for idx, batch in tqdm(enumerate(dataloader),total = dataloader.batc):
             ids = batch["input_ids"].to(device, dtype=torch.long)
             mask = batch["attention_mask"].to(device, dtype=torch.long)
             targets = batch["labels"].to(device, dtype=torch.long)
