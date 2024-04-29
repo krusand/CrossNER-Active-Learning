@@ -75,7 +75,7 @@ class EarlyStopping:
 class BertForTokenClassification(BertPreTrainedModel):
     config_class = BertConfig
 
-    def __init__(self, config, tags, patience=3, delta=0, verbose=False, path="checkpoint.pt"):
+    def __init__(self, config, tags, patience=3, delta=0, verbose=False):
         super().__init__(config)
         self.num_labels = len(tags)
         
@@ -93,7 +93,6 @@ class BertForTokenClassification(BertPreTrainedModel):
         self.patience = patience
         self.delta = delta
         self.verbose = verbose
-        self.path = path
 
         # Save accuracy and loss
         self.training_acc = []
@@ -225,9 +224,9 @@ class BertForTokenClassification(BertPreTrainedModel):
         self.validation_loss.append(val_loss)
         self.validation_acc.append(val_acc)
 
-    def fit(self, num_epochs, train_data_loader, val_data_loader, device, optimizer):
+    def fit(self, num_epochs, train_data_loader, val_data_loader, device, optimizer, path):
         
-        early_stopping = EarlyStopping(patience=self.patience, verbose=self.verbose, delta=self.delta, path=self.path)
+        early_stopping = EarlyStopping(patience=self.patience, verbose=self.verbose, delta=self.delta, path=path)
 
         for epoch in range(num_epochs):
 
