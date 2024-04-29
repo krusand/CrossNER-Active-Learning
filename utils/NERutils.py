@@ -259,10 +259,10 @@ def toSpans(tags):
 
 
 def getF1ScoreFromPath(predPath: str, goldPath: str):
-    gold = nu.readDataset(goldPath)
-    pred =  nu.readDataset(predPath)
-    goldEnts = nu.getEntsForPredictions(gold)
-    predEnts =  nu.getEntsForPredictions(pred)
+    gold = readDataset(goldPath)
+    pred =  readDataset(predPath)
+    goldEnts = getEntsForPredictions(gold)
+    predEnts =  getEntsForPredictions(pred)
     entScores = []
     tp = 0
     fp = 0
