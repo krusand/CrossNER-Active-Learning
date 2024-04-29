@@ -1,8 +1,46 @@
 #List of uncertainty measures: https://towardsdatascience.com/active-learning-overview-strategies-and-uncertainty-measures-521565e0b0b
 
-import torch.nn.functional as F
 import torch
+import torch.nn as nn
+import torch.nn.functional as F
+from torch.utils.data import DataLoader, SubsetRandomSampler
+
 import numpy as np
+import pandas as pd
+import random
+from transformers import AutoConfig, AutoTokenizer
+
+from model_new import BertForTokenClassification
+import utils.NERutils as nu
+
+
+def query_the_oracle(model, device, dataset, query_size=10, query_strategy='random', 
+                     interactive=True, pool_size=0, batch_size=16, num_workers=0):
+    
+    unlabeled_idx = np.nonzero(dataset.unlabeled_mask)[0]
+
+    # Pool based sampeling
+    if pool_size > 0:
+        pool_idx = random.sample(range(1, len(unlabeled_idx)), pool_size)
+        pool_loader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
+                                 sampler=SubsetRandomSampler(unlabeled_idx[pool_idx]))
+    else:
+        pool_loader = DataLoader(dataset, batch_size=batch_size, num_workers=num_workers,
+                                 sampler=SubsetRandomSampler(unlabeled_idx))
+    
+    # Strategies
+    if query_strategy == 'margin':
+        sample_idx = margin_of_confidence(model, device, pool_loader, query_size)
+
+    elif query_strategy == 'confidence':
+        sample_idx = least_confidece(model, device, pool_loader, query_size)
+        
+    else:
+        sample_idx = random_query(pool_loader, query_size)
+    
+    # Move observation to the pool of labeled samples
+    for sample in sample_idx:
+        dataset.unlabeled_mask[sample] = 0
 
 def random_query(data_loader, query_size = 10):
     indexes = []
