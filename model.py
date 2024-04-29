@@ -139,8 +139,7 @@ class BertForTokenClassification(BertPreTrainedModel):
 
         # Initialize parameters for calculating training loss and accuracy
         num_batches = len(data_loader)
-        size = len(data_loader.dataset)
-        epoch_loss, correct = 0, 0
+        epoch_loss, epoch_acc = 0, 0
 
         for idx, batch in enumerate(tqdm(data_loader)):
             ids = batch["input_ids"].to(device, dtype=torch.long)
@@ -170,11 +169,11 @@ class BertForTokenClassification(BertPreTrainedModel):
 
             # Calculate train loss and accuracy
             epoch_loss += loss.item()
-            correct += (targets == predictions).type(torch.float).sum().item()
-        
+            epoch_acc += ((targets == predictions).type(torch.float).sum().item()/len(targets))
+
         # Caluclate training loss and accuracy for the current epoch
         train_loss = epoch_loss/num_batches
-        train_acc = correct/size
+        train_acc = epoch_acc/num_batches
         
         # Save loss and accuracy to history
         self.training_loss.append(train_loss)
@@ -185,8 +184,7 @@ class BertForTokenClassification(BertPreTrainedModel):
 
         # Initialize parameters for calculating training loss and accuracy
         num_batches = len(data_loader)
-        size = len(data_loader.dataset)
-        epoch_loss, correct = 0, 0
+        epoch_loss, epoch_acc = 0, 0
 
         with torch.no_grad():
             for idx, batch in enumerate(data_loader):
@@ -214,11 +212,11 @@ class BertForTokenClassification(BertPreTrainedModel):
 
                 # Calculate train loss and accuracy
                 epoch_loss += loss.item()
-                correct += (targets == predictions).type(torch.float).sum().item()
+                epoch_acc += ((targets == predictions).type(torch.float).sum().item()/len(targets))
         
         # Caluclate training loss and accuracy for the current epoch
         val_loss = epoch_loss/num_batches
-        val_acc = correct/size
+        val_acc = epoch_acc/num_batches
         
         # Save loss and accuracy to history
         self.validation_loss.append(val_loss)
