@@ -1,18 +1,11 @@
 #List of uncertainty measures: https://towardsdatascience.com/active-learning-overview-strategies-and-uncertainty-measures-521565e0b0b
 
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader, SubsetRandomSampler
 
 import numpy as np
-import pandas as pd
 import random
-from transformers import AutoConfig, AutoTokenizer
-
-from model_new import BertForTokenClassification
-import utils.NERutils as nu
-
 
 def query_the_oracle(model, device, dataset, query_size=10, query_strategy='random', 
                      interactive=True, pool_size=0, batch_size=16, num_workers=0):
