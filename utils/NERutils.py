@@ -304,7 +304,7 @@ def evaluate_model(model, dataloader, device):
 
 
     with torch.no_grad():
-        for idx, batch in tqdm(enumerate(dataloader),total = dataloader.batch):
+        for idx, batch in tqdm(enumerate(dataloader), total = len(dataloader)):
             ids = batch["input_ids"].to(device, dtype=torch.long)
             mask = batch["attention_mask"].to(device, dtype=torch.long)
             targets = batch["labels"].to(device, dtype=torch.long)
