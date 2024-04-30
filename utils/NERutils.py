@@ -329,7 +329,7 @@ def evaluate_model(model, dataloader, device):
             batch_preds.append(predictions)
             batch_targets.append(targets)
 
-    return torch.cat(batch_preds, dim=0).numpy(), torch.cat(batch_targets, dim=0).numpy()
+    return torch.cat(batch_preds, dim=0).cpu().numpy(), torch.cat(batch_targets, dim=0).cpu().numpy()
 
 
 
