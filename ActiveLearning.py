@@ -133,7 +133,7 @@ for target_domain in target_domains:
 
             print("Model saved")
 
-        ALResult = pd.DataFrame({"Loss":loss, "Accuracy": acc, "f1": f1, "number_of_samples": num_samples, "percentage_of_samples": p_samples})
+        ALResult = pd.DataFrame({"Loss":loss, "Accuracy": acc, "f1": f1_scores, "number_of_samples": n_samples, "percentage_of_samples": p_samples})
         ALResult.to_csv(f"ALResult_{target_domain}_{query_strategy}.csv")
 
 
