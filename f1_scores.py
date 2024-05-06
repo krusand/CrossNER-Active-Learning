@@ -2,7 +2,7 @@
 import torch
 import pickle 
 
-from utils.model import BertForTokenClassification
+from model import BertForTokenClassification
 import utils.NERutils as nu
 
 from transformers import AutoConfig, AutoTokenizer
@@ -60,10 +60,10 @@ for model_type in tqdm(models_and_filters):
         model = BertForTokenClassification.from_pretrained(bert_model_name, config=bert_config, tags=train_dataset.tags, verbose=True).to(device)
 
         # Load model
-        model.load_state_dict(torch.load(f"/home/aksv/NLP_assignments/Project/fine_tuned/source_domains/{model_type}_finetuned.pt", map_location=device))
+        model.load_state_dict(torch.load(f"Trained_models/source_domains/{model_type}_finetuned.pt", map_location=device))
 
         # Evaluate model
-        preds, targets = nu.evaluate_model(model=model, dataloader=train_loader, device=device)
+        preds, targets = nu.evaluate_model(model=model, dataloader=test_loader, device=device)
 
         # Convert ids to tags
         preds = [*map(train_dataset.index2tag.get, list(preds))]
