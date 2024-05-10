@@ -134,7 +134,7 @@ class BertForTokenClassification(BertPreTrainedModel):
     def train_loop(self, data_loader, device, optimizer):
         self.train()
 
-        # Initialize parameters for calculating training loss and accuracy
+        # Initialize parameters for calculating training loss
         num_batches = len(data_loader)
         epoch_loss = 0
 
@@ -154,19 +154,19 @@ class BertForTokenClassification(BertPreTrainedModel):
             loss.backward()
             optimizer.step()
 
-            # Calculate train loss and accuracy
+            # Calculate train loss
             epoch_loss += loss.item()
 
-        # Caluclate training loss and accuracy for the current epoch
+        # Caluclate training loss for the current epoch
         train_loss = epoch_loss/num_batches
         
-        # Save loss and accuracy to history
+        # Save loss to history
         self.training_loss.append(train_loss)
 
     def val_loop(self, data_loader, device):
         self.eval()
 
-        # Initialize parameters for calculating training loss and accuracy
+        # Initialize parameters for calculating training loss
         num_batches = len(data_loader)
         epoch_loss = 0
 
@@ -184,14 +184,14 @@ class BertForTokenClassification(BertPreTrainedModel):
                 # Save validation loss
                 loss, _ = outputs.loss, outputs.logits
 
-                # Calculate train loss and accuracy
+                # Calculate train loss
                 epoch_loss += loss.item()
         
-        # Caluclate training loss and accuracy for the current epoch
+        # Caluclate training loss for the current epoch
         val_loss = epoch_loss/num_batches
 
         
-        # Save loss and accuracy to history
+        # Save loss to history
         self.validation_loss.append(val_loss)
 
     def fit(self, num_epochs, train_data_loader, val_data_loader, device, optimizer, path):
@@ -236,7 +236,7 @@ class BertForTokenClassification(BertPreTrainedModel):
         """
         self.eval()
 
-        # Initialize parameters for calculating training loss and accuracy
+        # Initialize parameters for calculating training loss
         logits = []
         masks = []
         indices = []
