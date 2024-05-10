@@ -94,7 +94,7 @@ model.fit(num_epochs=N_EPOCHS,
           train_loader=train_loader, 
           dev_loader=dev_loader,
           device=device, 
-          optimizer=torch.optim.Adam(params=model.parameters(), lr=LEARNING_RATE))
+          optimizer=torch.optim.Adam(params=model.parameters(), lr=LEARNING_RATE, weight_decay=0.01))
 
 
 

@@ -302,7 +302,8 @@ def evaluate_model(model, dataloader, device):
         
     batch_preds, batch_targets = [], []
 
-
+    model.eval()
+    
     with torch.no_grad():
         for idx, batch in tqdm(enumerate(dataloader), total = len(dataloader)):
             ids = batch["input_ids"].to(device, dtype=torch.long)
