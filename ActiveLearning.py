@@ -112,11 +112,10 @@ def perform_active_learning(batch_size,
                 print(query_strategy, target_domain, baseline_model_path)
                 # Initialize parameters
                 loss = []
-                acc = []
                 f1_scores = []
                 n_samples = []
                 p_samples = []
-                min_loss, min_acc = np.inf, np.inf
+                min_loss = np.inf
                 
                 model_path = "/home/aksv/NLP_assignments/Project/fine_tuned/active_learning_models/multiple_gpu/" + f"model_{baseline_model_path}_{target_domain}_{query_strategy}.pt"
                 num_queries = len(train_dataset)//query_size
@@ -142,9 +141,8 @@ def perform_active_learning(batch_size,
                     print("Fit model")
                     model.fit(num_epochs, labeled_loader, dev_loader, device, optimizer, model_path)
 
-                    # Find validation loss and accuracy for history
+                    # Find validation loss for history
                     val_loss = model.validation_loss[-1]
-                    val_acc = model.validation_acc[-1]
 
                     # Calcualte num_samples
                     num_samples = len(labeled_idx)
@@ -158,7 +156,6 @@ def perform_active_learning(batch_size,
                     
                     print("Save test values")
                     loss.append(val_loss)
-                    acc.append(val_acc)
                     f1_scores.append(f1)
                     n_samples.append(num_samples)
                     p_samples.append(per_samples)
@@ -170,7 +167,7 @@ def perform_active_learning(batch_size,
                         torch.save(model.state_dict(), model_path)
                         print("Model saved")
 
-                    ALResult = pd.DataFrame({"Loss":loss, "Accuracy": acc, "f1": f1_scores, "number_of_samples": n_samples, "percentage_of_samples": p_samples})
+                    ALResult = pd.DataFrame({"Loss":loss, "f1": f1_scores, "number_of_samples": n_samples, "percentage_of_samples": p_samples})
                     ALResult.to_csv(f"/home/aksv/NLP_assignments/Project/al_results/multiple_gpu/ALResult_{baseline_model_path}_{target_domain}_{query_strategy}.csv", index = False)
 
 

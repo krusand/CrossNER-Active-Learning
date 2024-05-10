@@ -168,7 +168,7 @@ class BertForTokenClassification(BertPreTrainedModel):
 
         # Initialize parameters for calculating training loss and accuracy
         num_batches = len(data_loader)
-        epoch_loss, epoch_acc = 0, 0
+        epoch_loss = 0
 
         with torch.no_grad():
             for idx, batch in enumerate(data_loader):
