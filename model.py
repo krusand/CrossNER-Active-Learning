@@ -9,7 +9,6 @@ from transformers.models.bert.modeling_bert import BertModel
 from transformers.models.bert.modeling_bert import BertPreTrainedModel
 
 # Timetracker
-from tqdm import tqdm
 
 
 #**************************
@@ -94,11 +93,9 @@ class BertForTokenClassification(BertPreTrainedModel):
         self.delta = delta
         self.verbose = verbose
 
-        # Save accuracy and loss
-        self.training_acc = []
+        # Save loss
         self.training_loss = []
 
-        self.validation_acc = []
         self.validation_loss = []
 
     def forward(
@@ -139,9 +136,9 @@ class BertForTokenClassification(BertPreTrainedModel):
 
         # Initialize parameters for calculating training loss and accuracy
         num_batches = len(data_loader)
-        epoch_loss, epoch_acc = 0, 0
+        epoch_loss = 0
 
-        for idx, batch in enumerate(tqdm(data_loader)):
+        for idx, batch in enumerate(data_loader):
             ids = batch["input_ids"].to(device, dtype=torch.long)
             mask = batch["attention_mask"].to(device, dtype=torch.long)
             targets = batch["labels"].to(device, dtype=torch.long)
@@ -150,17 +147,7 @@ class BertForTokenClassification(BertPreTrainedModel):
                             attention_mask = mask,
                             labels = targets)
             
-            loss, tr_logits = outputs.loss, outputs.logits
-
-            # Flatten targets and predictions
-            flattened_targets = targets.view(-1) # shape (batch_size * seq_len,)
-            active_logits = tr_logits.view(-1, self.num_labels) # shape (batch_size * seq_len, num_labels)
-            flattened_predictions = torch.argmax(active_logits, axis=1) # shape (batch_size * seq_len,)
-            
-            # Mask predictions and targets (includes [CLS] and [SEP] token predictions)
-            active_accuracy = mask.view(-1) == 1 # active accuracy is also of shape (batch_size * seq_len,)
-            targets = torch.masked_select(flattened_targets, active_accuracy)
-            predictions = torch.masked_select(flattened_predictions, active_accuracy)
+            loss, _ = outputs.loss, outputs.logits
 
             # Backpropagation
             optimizer.zero_grad()
@@ -169,15 +156,12 @@ class BertForTokenClassification(BertPreTrainedModel):
 
             # Calculate train loss and accuracy
             epoch_loss += loss.item()
-            epoch_acc += ((targets == predictions).type(torch.float).sum().item()/len(targets))
 
         # Caluclate training loss and accuracy for the current epoch
         train_loss = epoch_loss/num_batches
-        train_acc = epoch_acc/num_batches
         
         # Save loss and accuracy to history
         self.training_loss.append(train_loss)
-        self.training_acc.append(train_acc)
 
     def val_loop(self, data_loader, device):
         self.eval()
@@ -198,29 +182,17 @@ class BertForTokenClassification(BertPreTrainedModel):
                                 labels = targets)
                 
                 # Save validation loss
-                loss, tr_logits = outputs.loss, outputs.logits
-
-                # Flatten targets and predictions
-                flattened_targets = targets.view(-1) # shape (batch_size * seq_len,)
-                active_logits = tr_logits.view(-1, self.num_labels) # shape (batch_size * seq_len, num_labels)
-                flattened_predictions = torch.argmax(active_logits, axis=1) # shape (batch_size * seq_len,)
-                
-                # Mask predictions and targets (includes [CLS] and [SEP] token predictions)
-                active_accuracy = mask.view(-1) == 1 # active accuracy is also of shape (batch_size * seq_len,)
-                targets = torch.masked_select(flattened_targets, active_accuracy)
-                predictions = torch.masked_select(flattened_predictions, active_accuracy)
+                loss, _ = outputs.loss, outputs.logits
 
                 # Calculate train loss and accuracy
                 epoch_loss += loss.item()
-                epoch_acc += ((targets == predictions).type(torch.float).sum().item()/len(targets))
         
         # Caluclate training loss and accuracy for the current epoch
         val_loss = epoch_loss/num_batches
-        val_acc = epoch_acc/num_batches
+
         
         # Save loss and accuracy to history
         self.validation_loss.append(val_loss)
-        self.validation_acc.append(val_acc)
 
     def fit(self, num_epochs, train_data_loader, val_data_loader, device, optimizer, path):
         
@@ -273,7 +245,7 @@ class BertForTokenClassification(BertPreTrainedModel):
         size = np.ceil(size).astype("int")
 
         with torch.no_grad():
-            for idx, batch in tqdm(enumerate(data_loader), total=size):
+            for idx, batch in enumerate(data_loader):
                 
                 ids = batch["input_ids"].to(device, dtype=torch.long)
                 mask = batch["attention_mask"].to(device, dtype=torch.long)

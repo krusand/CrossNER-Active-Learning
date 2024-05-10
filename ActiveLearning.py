@@ -105,11 +105,9 @@ def perform_active_learning(batch_size,
                 # Get data from target domain
                 train_dataset = nu.NERdataset(dataset_path=train_path, tokenizer=bert_tokenizer, filter=target_domain)
                 dev_dataset = nu.NERdataset(dataset_path=dev_path, tokenizer=bert_tokenizer, filter=target_domain,tags=train_dataset.tags, index2tag=train_dataset.index2tag, tag2index=train_dataset.tag2index)
-                test_dataset = nu.NERdataset(dataset_path=test_path, tokenizer=bert_tokenizer, filter=target_domain,tags=train_dataset.tags, index2tag=train_dataset.index2tag, tag2index=train_dataset.tag2index)
 
                 # Define dataloader for validation
                 dev_loader = DataLoader(dev_dataset, batch_size=batch_size, shuffle=False ,num_workers=0)
-                test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
 
                 print(query_strategy, target_domain, baseline_model_path)
                 # Initialize parameters
@@ -168,12 +166,12 @@ def perform_active_learning(batch_size,
                     # Save model if it outperformed previous model
                     print("Save model")
                     if val_loss < min_loss:
+                        min_loss = val_loss
                         torch.save(model.state_dict(), model_path)
+                        print("Model saved")
 
-                    print("Model saved")
-
-                ALResult = pd.DataFrame({"Loss":loss, "Accuracy": acc, "f1": f1_scores, "number_of_samples": n_samples, "percentage_of_samples": p_samples})
-                ALResult.to_csv(f"/home/aksv/NLP_assignments/Project/al_results/multiple_gpu/ALResult_{baseline_model_path}_{target_domain}_{query_strategy}.csv", index = False)
+                    ALResult = pd.DataFrame({"Loss":loss, "Accuracy": acc, "f1": f1_scores, "number_of_samples": n_samples, "percentage_of_samples": p_samples})
+                    ALResult.to_csv(f"/home/aksv/NLP_assignments/Project/al_results/multiple_gpu/ALResult_{baseline_model_path}_{target_domain}_{query_strategy}.csv", index = False)
 
 
 max_attempts = 75
