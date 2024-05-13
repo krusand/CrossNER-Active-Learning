@@ -23,7 +23,7 @@ class EarlyStopping:
         """
         Args:
             patience (int): How long to wait after last time validation f1 improved.
-                            Default: 7
+                            Default: 3
             verbose (bool): If True, prints a message for each validation f1 improvement. 
                             Default: False
             delta (float): Minimum change in the monitored quantity to qualify as an improvement.
@@ -135,10 +135,12 @@ class BertForTokenClassification(BertPreTrainedModel):
     
     def train_loop(self, data_loader, device, optimizer):
         self.train()
+        
+        batch_preds, batch_targets = [], []
 
         # Initialize parameters for calculating training loss and f1
         num_batches = len(data_loader)
-        epoch_loss, epoch_f1 = 0, 0
+        epoch_loss = 0
 
         for idx, batch in enumerate(data_loader):
             ids = batch["input_ids"].to(device, dtype=torch.long)
@@ -166,15 +168,15 @@ class BertForTokenClassification(BertPreTrainedModel):
             targets = torch.masked_select(flattened_targets, active_accuracy)
             predictions = torch.masked_select(flattened_predictions, active_accuracy)
 
-            predictions, targets = torch.cat(predictions, dim=0).cpu().numpy(), torch.cat(targets, dim=0).cpu().numpy()
+            batch_preds.append(predictions)
+            batch_targets.append(targets)
 
             # Calculate train loss and f1
             epoch_loss += loss.item()
-            epoch_f1 += self.get_f1_score(predictions, targets)
 
         # Caluclate training loss for the current epoch
         train_loss = epoch_loss/num_batches
-        train_f1 = epoch_f1/num_batches
+        train_f1 = self.get_f1_score(preds=torch.cat(batch_preds, dim=0).cpu().numpy(), targets=torch.cat(batch_targets, dim=0).cpu().numpy())
         
         # Save loss and f1 to history
         self.training_loss.append(train_loss)
@@ -182,10 +184,12 @@ class BertForTokenClassification(BertPreTrainedModel):
 
     def val_loop(self, data_loader, device):
         self.eval()
+        
+        batch_preds, batch_targets = [], []
 
         # Initialize parameters for calculating training loss
         num_batches = len(data_loader)
-        epoch_loss, epoch_f1 = 0, 0
+        epoch_loss = 0
 
         with torch.no_grad():
             for idx, batch in enumerate(data_loader):
@@ -211,21 +215,21 @@ class BertForTokenClassification(BertPreTrainedModel):
                 targets = torch.masked_select(flattened_targets, active_accuracy)
                 predictions = torch.masked_select(flattened_predictions, active_accuracy)
 
-                predictions, targets = torch.cat(predictions, dim=0).cpu().numpy(), torch.cat(targets, dim=0).cpu().numpy()
-
+                batch_preds.append(predictions)
+                batch_targets.append(targets)
+                
                 # Calculate train loss
                 epoch_loss += loss.item()
-                epoch_f1 += self.get_f1_score(predictions, targets)
         
         # Caluclate training loss for the current epoch
         val_loss = epoch_loss/num_batches
-        val_f1 = val_f1/num_batches
+        val_f1 = self.get_f1_score(preds=torch.cat(batch_preds, dim=0).cpu().numpy(), targets=torch.cat(batch_targets, dim=0).cpu().numpy())
         
         # Save loss and f1 to history
         self.validation_loss.append(val_loss)
         self.validation_f1.append(val_f1)
 
-    def get_f1_score(preds, targets):
+    def get_f1_score(self, preds, targets):
     
         _, index2tag, _ = nu.load_vocabs()
 
@@ -242,8 +246,8 @@ class BertForTokenClassification(BertPreTrainedModel):
         for epoch in range(num_epochs):
 
             if self.verbose:
-                print(f"Epoch {epoch+1} of {num_epochs} epochs")
-           
+                print(f"Epoch {epoch+1} of {num_epochs} epochs", flush = True)
+            
             print("Train")
             self.train_loop(train_data_loader, device, optimizer)
             print("Validate")

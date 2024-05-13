@@ -67,7 +67,7 @@ def perform_active_learning(batch_size,
                             source_domain,
                             path):
     
-    model_save_path = "/home/aksv/NLP_assignments/Project/fine_tuned/active_learning/" + f"model_{source_domain}_{target_domain}_{query_strategy}.pt"
+    model_save_path = "/home/aksv/NLP_assignments/Project/fine_tuned/active_learning/" + f"model_{source_domain}_{target_domain}_{query_strategy}"
     
     # Specify path for data
     train_path = "data/BIOtrain.parquet"
@@ -130,7 +130,7 @@ def perform_active_learning(batch_size,
 
         # train model
         print("Fit model", flush = True)
-        model.fit(num_epochs, labeled_loader, dev_loader, device, optimizer, f"{model_save_path}_checkpoint")
+        model.fit(num_epochs, labeled_loader, dev_loader, device, optimizer, f"{model_save_path}_checkpoint.pt")
 
         # Find validation loss for history
         val_loss = model.validation_loss[-1]
@@ -156,7 +156,7 @@ def perform_active_learning(batch_size,
         # Save model if it outperformed previous model
         if val_f1 > max_f1:
             max_f1 = val_f1
-            torch.save(model.state_dict(), model_save_path)
+            torch.save(model.state_dict(), model_save_path + ".pt")
             print("Model saved", flush = True)
 
     ALResult = pd.DataFrame({"Loss":loss, "f1": f1_scores, "number_of_samples": n_samples, "percentage_of_samples": p_samples})
