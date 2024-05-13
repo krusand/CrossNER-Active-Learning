@@ -24,7 +24,6 @@ import argparse
 # Specify the path to the source domain models
 path = "/home/aksv/NLP_assignments/Project/fine_tuned/regularized/"
 
-
 parser = argparse.ArgumentParser(description="NER Active Learning Script")
 parser.add_argument("-t", "--target", type=str, help="Specify the target domain for active learning")
 parser.add_argument("-s", "--source", type=str, help="Specify the source domain model used for active learning")
@@ -108,7 +107,7 @@ def perform_active_learning(batch_size,
     f1_scores = []
     n_samples = []
     p_samples = []
-    min_loss = np.inf
+    max_f1 = 0
     
     num_queries = len(train_dataset)//query_size
 
@@ -131,38 +130,37 @@ def perform_active_learning(batch_size,
 
         # train model
         print("Fit model", flush = True)
-        model.fit(num_epochs, labeled_loader, dev_loader, device, optimizer, model_save_path)
+        model.fit(num_epochs, labeled_loader, dev_loader, device, optimizer, f"{model_save_path}_checkpoint")
 
         # Find validation loss for history
         val_loss = model.validation_loss[-1]
+        val_f1 = model.validation_f1[-1]
 
         # Calcualte num_samples
         num_samples = len(labeled_idx)
         per_samples = len(labeled_idx)/len(train_dataset)
 
         # Calculate f1
-        preds, targets = nu.evaluate_model(model, dev_loader, device)
-        preds = [*map(index2tag.get, list(preds))]
-        golds = [*map(index2tag.get, list(targets))]
-        f1 = nu.getF1ScoreFromLists(golds, preds)
+        #preds, targets = nu.evaluate_model(model, dev_loader, device)
+        #preds = [*map(index2tag.get, list(preds))]
+        #golds = [*map(index2tag.get, list(targets))]
+        #f1 = nu.getF1ScoreFromLists(golds, preds)
         
         print("Save test values", flush = True)
-        print(f"The result of the test was:\nF1 score: {f1} with num_samples {num_samples} and per_samples {per_samples}", flush=True)
+        print(f"The result of the test was:\nF1 score: {val_f1} with num_samples {num_samples} and per_samples {per_samples}", flush=True)
         loss.append(val_loss)
-        f1_scores.append(f1)
+        f1_scores.append(val_f1)
         n_samples.append(num_samples)
         p_samples.append(per_samples)
 
         # Save model if it outperformed previous model
-        if val_loss < min_loss:
-            min_loss = val_loss
+        if val_f1 > max_f1:
+            max_f1 = val_f1
             torch.save(model.state_dict(), model_save_path)
             print("Model saved", flush = True)
 
-
     ALResult = pd.DataFrame({"Loss":loss, "f1": f1_scores, "number_of_samples": n_samples, "percentage_of_samples": p_samples})
     ALResult.to_csv(f"/home/aksv/NLP_assignments/Project/al_results/ALResult_{source_domain}_{target_domain}_{query_strategy}.csv", index = False)
-
 
 while n_attempts < max_attempts and batch_size > 0:
 
@@ -186,7 +184,6 @@ while n_attempts < max_attempts and batch_size > 0:
         torch.cuda.empty_cache()
 else:
     print("Max attempts used")
-
 
 end_time = time.time()
 run_time = (end_time - start_time)
