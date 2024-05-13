@@ -28,14 +28,14 @@ parser = argparse.ArgumentParser(description="NER Active Learning Script")
 parser.add_argument("-t", "--target", type=str, help="Specify the target domain for active learning")
 parser.add_argument("-s", "--source", type=str, help="Specify the source domain model used for active learning")
 parser.add_argument("-q", "--query", type=str, help="Specify the query strategy to be used for active learning")
-parser.add_argument("-f", "--filter", type=bool, required= False, help="Specify if the padding is filtered for the loss")
+parser.add_argument("-am", "--attention_mask", type=bool, required= False, help="Specify if the padding is filtered for the loss")
 
 args = parser.parse_args()
 
 target_domain = args.target
 source_domain = args.source
 query_strategy = args.query
-filter_padding = args.filter
+filter_padding = args.attention_mask
 
 print(f"Starting script:\n{query_strategy = }\n{target_domain = }\n{source_domain = }\n", flush=True)
 
