@@ -11,7 +11,7 @@ from torch.utils.data import DataLoader, SubsetRandomSampler
 from transformers import AutoConfig, AutoTokenizer
 
 # Model
-from utils.model import BertForTokenClassification
+from model import BertForTokenClassification
 
 # Self made functions
 import utils.NERutils as nu
@@ -28,12 +28,14 @@ parser = argparse.ArgumentParser(description="NER Active Learning Script")
 parser.add_argument("-t", "--target", type=str, help="Specify the target domain for active learning")
 parser.add_argument("-s", "--source", type=str, help="Specify the source domain model used for active learning")
 parser.add_argument("-q", "--query", type=str, help="Specify the query strategy to be used for active learning")
+parser.add_argument("-f", "--filter", type=bool, required= False, help="Specify if the padding is filtered for the loss")
 
 args = parser.parse_args()
 
 target_domain = args.target
 source_domain = args.source
 query_strategy = args.query
+filter_padding = args.filter
 
 print(f"Starting script:\n{query_strategy = }\n{target_domain = }\n{source_domain = }\n", flush=True)
 
@@ -115,7 +117,7 @@ def perform_active_learning(batch_size,
         
         # Reset model and optimizer 
         print("Recompile model")
-        model = BertForTokenClassification.from_pretrained(bert_model_name, config=bert_config, tags=tags, patience=patience, verbose=True).to(device)
+        model = BertForTokenClassification.from_pretrained(bert_model_name, config=bert_config, tags=tags, patience=patience, verbose=True, filter_padding = filter_padding).to(device)
         model.load_state_dict(torch.load(path + source_domain + "_finetuned.pt", map_location=device))
         optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay = 0.01)
 

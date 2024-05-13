@@ -74,7 +74,7 @@ class EarlyStopping:
 class BertForTokenClassification(BertPreTrainedModel):
     config_class = BertConfig
 
-    def __init__(self, config, tags, patience=3, delta=0, verbose=False):
+    def __init__(self, config, tags, patience=3, delta=0, verbose=False, filter_padding = False):
         super().__init__(config)
         self.num_labels = len(tags)
         
@@ -92,6 +92,7 @@ class BertForTokenClassification(BertPreTrainedModel):
         self.patience = patience
         self.delta = delta
         self.verbose = verbose
+        self.filter_padding = filter_padding
 
         # Save loss and f1
         self.training_f1 = []
@@ -123,7 +124,11 @@ class BertForTokenClassification(BertPreTrainedModel):
         loss = None
         if labels is not None:
             loss_fct = nn.CrossEntropyLoss()
-            loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+            if self.filter_padding:
+                mask_filter = attention_mask.type(torch.bool).view(-1)
+                loss = loss_fct(logits.view(-1, self.num_labels)[mask_filter], labels.view(-1)[mask_filter])
+            else:
+                loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
         
         # Return model output object
         return TokenClassifierOutput(
