@@ -5,6 +5,7 @@ import torch
 from torch.utils.data import Dataset
 from transformers import AutoTokenizer
 from tqdm import tqdm
+import pickle
 
 #****************************
 #***   Dataset features   ***
@@ -49,6 +50,14 @@ def getVocabFeatures(df: pd.DataFrame) -> tuple[list, dict, dict]:
     index2tag = {idx: tag for idx, tag in enumerate(tags)}
     tag2index = {tag: idx for idx, tag in enumerate(tags)}
 
+    return tags, index2tag, tag2index
+
+
+def load_vocabs(vocab_path: str = "vocabs/"):
+    with open(vocab_path + "tags.pkl", "rb") as tags,open(vocab_path + "index2tag.pkl", "rb") as index2tag,open(vocab_path + "tag2index.pkl", "rb") as tag2index:
+        tags = pickle.load(tags)
+        index2tag = pickle.load(index2tag)
+        tag2index = pickle.load(tag2index)
     return tags, index2tag, tag2index
 
 
