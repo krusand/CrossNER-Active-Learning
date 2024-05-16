@@ -1,16 +1,14 @@
-https://aclanthology.org/W17-2630.pdf
+# Outliers and active learning
+Cartography Active Learning: https://aclanthology.org/2021.findings-emnlp.36.pdf
+Mind Your Outliers!: https://aclanthology.org/2021.acl-long.564.pdf
 
-Active learning for NER (Reweighting tokens, BERT)
-https://aclanthology.org/2023.findings-emnlp.847.pdf
+Deep Active Learning for Named Entity Recognition: https://aclanthology.org/W17-2630.pdf
+Active learning for NER (Reweighting tokens, BERT): https://aclanthology.org/2023.findings-emnlp.847.pdf
+Using AL for fine-tuning BERT: https://aclanthology.org/2020.emnlp-main.638.pdf
 
-https://aclanthology.org/2023.eacl-main.160.pdf
+# Cross-domain
+Cross-domain with BERT: https://aclanthology.org/D19-5715.pdf
+Transfer-learning with NER: https://aclanthology.org/L18-1708.pdf
 
-Using AL for fine-tuning BERT
-https://aclanthology.org/2020.emnlp-main.638.pdf
-
-
-
-Not so relevant
-
-Multi-task active learning
-https://aclanthology.org/2022.tacl-1.70.pdf
+# BERT
+https://aclanthology.org/N19-1423.pdf
