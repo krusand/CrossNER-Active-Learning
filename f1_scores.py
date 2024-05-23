@@ -32,8 +32,8 @@ test_path = "data/BIOtest.parquet"
 model_path = "fine_tuned/regularized/"
 save_path = 'f1_scores/f1_scores.pkl'
 
-models = ["News"]
-filters = ["Conversation", "Social Media", "Legal", None]
+models: list[str] = ["News_finetuned"]
+filters: list[str] = ["Conversation", "Social Media", "Legal", None]
 
 batch_size = memory
 
@@ -66,7 +66,7 @@ for model_type in models:
     model = BertForTokenClassification.from_pretrained(bert_model_name, config=bert_config, tags=tags, verbose=True).to(device)
 
     # Load model
-    model.load_state_dict(torch.load(f"{model_path}{model_type}_finetuned.pt", map_location=device))
+    model.load_state_dict(torch.load(f"{model_path}{model_type}.pt", map_location=device))
 
     model.eval()
 
