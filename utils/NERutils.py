@@ -84,7 +84,8 @@ class NERdataset(Dataset):
                  filter: str = None,
                  tags = None,
                  index2tag = None,
-                 tag2index = None) -> None:
+                 tag2index = None,
+                 jointly:bool = False) -> None:
         self.__df = readDataset(dataset_path)
         if tags is None and index2tag is None and tag2index is None:
             self.tags, self.index2tag, self.tag2index = getVocabFeatures(self.__df)
@@ -92,7 +93,10 @@ class NERdataset(Dataset):
             self.tags, self.index2tag, self.tag2index = tags, index2tag, tag2index
         
         if filter is not None:
-            self.__df = self.__df[self.__df['dagw_domain']==filter]
+            if jointly:
+                self.__df = self.__df[self.__df['dagw_domain'].isin(filter)]
+            else:
+                self.__df = self.__df[self.__df['dagw_domain']==filter]
         self.MAX_LENGTH = max(findMaxLength(self.__df, tokenizer), 512)
         self.encodings = encodeDataFrame(self.__df, tokenizer, self.tag2index, self.MAX_LENGTH)
 

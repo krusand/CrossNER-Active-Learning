@@ -5,11 +5,8 @@ import torch
 import torch.nn as nn
 from torch.utils.data import DataLoader, SubsetRandomSampler
 
-import os
-import pickle
 import pandas as pd
 import numpy as np
-import random
 
 from model import BertForTokenClassification
 import utils.NERutils as nu
@@ -19,13 +16,15 @@ from transformers import AutoConfig, AutoTokenizer
 
 parser = argparse.ArgumentParser(description="NER Fine-tuning Script")
 parser.add_argument("-f", "--filter", type=str, required=False, help="Specify the filter for NER training")
-parser.add_argument("-am", "--attention_mask", type=bool, required= False, help="Specify if the padding is filtered for the loss")
+parser.add_argument("-am", "--attention_mask", type=bool, required=False, help="Specify if the padding is filtered for the loss")
+parser.add_argument("-j", "--jointly", type=bool, required=False, help = "Specify if the model is jointly trained on two or more domains")
 args = parser.parse_args()
 
-filter_padding = args.attention_mask
-filter = ["News", args.filter] 
-print(filter, flush=True)
+filter_padding = args.attention_mask if args.attention_mask is not None else True
+jointly = args.jointly if args.jointly is not None else False
+filter = ["News", args.filter] if jointly else args.filter
 
+print(filter, flush=True)
 
 device_name = torch.cuda.get_device_name(0)
 memory = int(round(int(torch.cuda.get_device_properties(0).total_memory) / 1000000000))
@@ -37,8 +36,8 @@ N_EPOCHS = 10000
 LEARNING_RATE = 1e-05
 
 batch_size = memory
-n_attempts = 0
 max_attempts = batch_size
+n_attempts = 0
 
 if torch.backends.mps.is_available():
     device = torch.device("mps")
@@ -46,7 +45,6 @@ elif torch.cuda.is_available():
     device = torch.device("cuda")
 else:
     device = torch.device("cpu")
-
 
 # Define tokenizer
 bert_model_name = "bert-base-multilingual-cased"
@@ -57,14 +55,11 @@ dev_path = "data/BIOdev.parquet"
 
 tags, index2tag, tag2index = nu.load_vocabs()
 
-# filters = ['Social Media','News','Web','Conversation','Wiki & Books','Legal','dannet']
-
-
-
+# Do this to ensure the script runs because of batch size
 while n_attempts < max_attempts and batch_size > 0:
     try:
-        train_dataset = nu.NERdataset(dataset_path=train_path, tokenizer=bert_tokenizer, filter=filter, tags=tags,tag2index=tag2index, index2tag=index2tag)
-        dev_dataset = nu.NERdataset(dataset_path=dev_path, tokenizer=bert_tokenizer, filter=filter, tags=tags,tag2index=tag2index, index2tag=index2tag)
+        train_dataset = nu.NERdataset(dataset_path=train_path, tokenizer=bert_tokenizer, filter=filter, tags=tags, tag2index=tag2index, index2tag=index2tag, jointly=jointly)
+        dev_dataset = nu.NERdataset(dataset_path=dev_path, tokenizer=bert_tokenizer, filter=filter, tags=tags, tag2index=tag2index, index2tag=index2tag,jointly=jointly)
 
         train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=0)
         dev_loader = DataLoader(dev_dataset, batch_size=batch_size, shuffle=False, num_workers=0)
@@ -88,9 +83,9 @@ while n_attempts < max_attempts and batch_size > 0:
                 val_data_loader=dev_loader,
                 device=device, 
                 optimizer=torch.optim.Adam(params=model.parameters(), lr=LEARNING_RATE, weight_decay=0.01),
-                path=f"fine_tuned/regularized/third/news_and_{args.filter}_2_finetuned.pt")
+                path=f"fine_tuned/regularized/third/news_and_{filter}_finetuned.pt")
 
-        print(f"Model: 'third/{filter}_2_finetuned' finished")
+        print(f"Model: 'third/{filter}_finetuned' finished")
         break
     except Exception as e: 
         print(f"MemoryError. Reducing batchsize to batch size {batch_size - 2}", flush=True)
