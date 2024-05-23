@@ -22,14 +22,13 @@ import argparse
 
 ### EDIT ###
 # Specify the path to the source domain models
-path = "/home/idwe/NLP/Project/"
+path = "/home/aksv/NLP_assignments/Project/fine_tuned/regularized/"
 
 parser = argparse.ArgumentParser(description="NER Active Learning Script")
 parser.add_argument("-t", "--target", type=str, help="Specify the target domain for active learning")
 parser.add_argument("-s", "--source", type=str, help="Specify the source domain model used for active learning")
 parser.add_argument("-q", "--query", type=str, help="Specify the query strategy to be used for active learning")
 parser.add_argument("-am", "--attention_mask", type=bool, required= False, help="Specify if the padding is filtered for the loss")
-parser.add_argument("-ri", "--run_id", type=int, required= False, help="Specify the run id for the model.")
 
 args = parser.parse_args()
 
@@ -37,16 +36,14 @@ target_domain = args.target
 source_domain = args.source
 query_strategy = args.query
 filter_padding = args.attention_mask
-run_id = args.run_id
 
 print(f"Starting script:\n{query_strategy = }\n{target_domain = }\n{source_domain = }\n", flush=True)
 
 max_attempts = 75
 n_attempts = 0
-num_queries = 20
-
-memory = int(round(int(torch.cuda.get_device_properties(0).total_memory) / 1000000000))
-batch_size = memory
+batch_size = 75
+query_size = 100
+pool_size = 500
 
 # Model parameters to specify
 num_epochs = 10000
@@ -61,23 +58,23 @@ if "2070" in torch.cuda.get_device_name(0):
     batch_size = 7
 
 ###########
-def perform_active_learning(batch_size,
-                            num_queries,
+def perform_active_learning(batch_size, 
+                            query_size, 
+                            pool_size, 
                             query_strategy, 
                             num_epochs, 
                             learning_rate, 
                             patience,
                             target_domain,
                             source_domain,
-                            path,
-                            run_id):
+                            path):
     
-    model_save_path = path + "fine_tuned/active_learning/" + f"model_{source_domain}_{target_domain}_{query_strategy}"
+    model_save_path = "/home/aksv/NLP_assignments/Project/fine_tuned/active_learning/" + f"model_{source_domain}_{target_domain}_{query_strategy}"
     
     # Specify path for data
-    train_path = path + "data/BIOtrain.parquet"
-    dev_path = path + "data/BIOdev.parquet"
-    test_path = path + "data/BIOtest.parquet"
+    train_path = "data/BIOtrain.parquet"
+    dev_path = "data/BIOdev.parquet"
+    test_path = "data/BIOtest.parquet"
 
     # Define tokenizer
     bert_model_name = "bert-base-multilingual-cased"
@@ -101,20 +98,11 @@ def perform_active_learning(batch_size,
     )
 
     # Get data from target domain
-    print("Loading data", flush=True)
     train_dataset = nu.NERdataset(dataset_path=train_path, tokenizer=bert_tokenizer, filter=target_domain,tags=tags,tag2index=tag2index, index2tag=index2tag)
     dev_dataset = nu.NERdataset(dataset_path=dev_path, tokenizer=bert_tokenizer, filter=target_domain,tags=tags,tag2index=tag2index, index2tag=index2tag)
 
     # Define dataloader for validation
     dev_loader = DataLoader(dev_dataset, batch_size=batch_size, shuffle=False ,num_workers=0)
-
-    # Get source vocab for vocab queries
-    if query_strategy == "vocab":
-        source_vocab = q.get_source_vocab(source_domain=source_domain, train_path= train_path, bert_tokenizer=bert_tokenizer)
-        target_scores = q.get_target_scores(target_domain, train_path, source_vocab, bert_tokenizer)
-    else:
-        source_vocab = None
-        target_scores = None
 
     # Initialize parameters
     loss = []
@@ -123,63 +111,19 @@ def perform_active_learning(batch_size,
     p_samples = []
     max_f1 = 0
     
-    dataset_size = len(train_dataset)
-    pool_size = int(len(train_dataset)*0.2)
+    num_queries = len(train_dataset)//query_size
 
-    # Initialize with training on random subset
-    # Reset model and optimizer 
-    print("Recompile model")
-    model = BertForTokenClassification.from_pretrained(bert_model_name, config=bert_config, tags=tags, patience=patience, verbose=True, filter_padding = filter_padding).to(device)
-    model.load_state_dict(torch.load(path + "fine_tuned/" + source_domain + "_finetuned.pt", map_location=device))
-    optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay = 0.01)
-
-    # Ask the oracle to label samples using one of the strategies
-    print("Query the oracle")
-    query_size = int(0.05 * dataset_size)
-    q.query_the_oracle(model, device, train_dataset, query_size, query_strategy, pool_size = pool_size, source_vocab=source_vocab, target_scores = target_scores, bert_tokenizer=bert_tokenizer)
-
-    # Create a dataloader with labeled indexes
-    labeled_idx = np.where(train_dataset.unlabeled_mask == 0)[0]
-    labeled_loader = DataLoader(train_dataset, batch_size=batch_size, num_workers=0, sampler=SubsetRandomSampler(labeled_idx))
-    print(f"Number of labeled indexes: {len(labeled_idx)}" , flush = True)
-
-    # train model
-    print("Fit model", flush = True)
-    model.fit(num_epochs, labeled_loader, dev_loader, device, optimizer, f"{model_save_path}_checkpoint_{run_id}.pt")
-
-    # Find validation loss for history
-    val_loss = model.validation_loss[-11]
-    val_f1 = model.validation_f1[-11]
-
-    # Calcualte num_samples
-    num_samples = len(labeled_idx)
-    per_samples = num_samples/dataset_size
-    
-    # Save model if it outperformed previous model
-    if val_f1 > max_f1:
-        max_f1 = val_f1
-        torch.save(model.state_dict(), model_save_path + f"_{run_id}.pt")
-        print("Model saved", flush = True)
-
-    print("Save test values", flush = True)
-    print(f"The result of the test was:\nF1 score: {val_f1} with num_samples {num_samples} and per_samples {per_samples}", flush=True)
-    loss.append(val_loss)
-    f1_scores.append(val_f1)
-    n_samples.append(num_samples)
-    p_samples.append(per_samples)
-
-    for query in tqdm(range(2, num_queries+1)):
+    for query in tqdm(range(num_queries)):
         
         # Reset model and optimizer 
         print("Recompile model")
         model = BertForTokenClassification.from_pretrained(bert_model_name, config=bert_config, tags=tags, patience=patience, verbose=True, filter_padding = filter_padding).to(device)
-        model.load_state_dict(torch.load(path + "fine_tuned/" + source_domain + "_finetuned.pt", map_location=device))
+        model.load_state_dict(torch.load(path + source_domain + "_finetuned.pt", map_location=device))
         optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay = 0.01)
 
         # Ask the oracle to label samples using one of the strategies
         print("Query the oracle")
-        query_size = int((query*0.05-per_samples) * dataset_size)
-        q.query_the_oracle(model, device, train_dataset, query_size, query_strategy, pool_size = pool_size, source_vocab=source_vocab, target_scores = target_scores, bert_tokenizer=bert_tokenizer)
+        q.query_the_oracle(model, device, train_dataset, query_size, query_strategy, pool_size)
 
         # Create a dataloader with labeled indexes
         labeled_idx = np.where(train_dataset.unlabeled_mask == 0)[0]
@@ -188,22 +132,22 @@ def perform_active_learning(batch_size,
 
         # train model
         print("Fit model", flush = True)
-        model.fit(num_epochs, labeled_loader, dev_loader, device, optimizer, f"{model_save_path}_checkpoint_{run_id}.pt")
+        model.fit(num_epochs, labeled_loader, dev_loader, device, optimizer, f"{model_save_path}_checkpoint.pt")
 
         # Find validation loss for history
-        val_loss = model.validation_loss[-11]
-        val_f1 = model.validation_f1[-11]
+        val_loss = model.validation_loss[-1]
+        val_f1 = model.validation_f1[-1]
 
         # Calcualte num_samples
         num_samples = len(labeled_idx)
         per_samples = len(labeled_idx)/len(train_dataset)
 
-        # Save model if it outperformed previous model
-        if val_f1 > max_f1:
-            max_f1 = val_f1
-            torch.save(model.state_dict(), model_save_path + f"_{run_id}.pt")
-            print("Model saved", flush = True)
-
+        # Calculate f1
+        #preds, targets = nu.evaluate_model(model, dev_loader, device)
+        #preds = [*map(index2tag.get, list(preds))]
+        #golds = [*map(index2tag.get, list(targets))]
+        #f1 = nu.getF1ScoreFromLists(golds, preds)
+        
         print("Save test values", flush = True)
         print(f"The result of the test was:\nF1 score: {val_f1} with num_samples {num_samples} and per_samples {per_samples}", flush=True)
         loss.append(val_loss)
@@ -211,26 +155,31 @@ def perform_active_learning(batch_size,
         n_samples.append(num_samples)
         p_samples.append(per_samples)
 
+        # Save model if it outperformed previous model
+        if val_f1 > max_f1:
+            max_f1 = val_f1
+            torch.save(model.state_dict(), model_save_path + ".pt")
+            print("Model saved", flush = True)
+
     ALResult = pd.DataFrame({"Loss":loss, "f1": f1_scores, "number_of_samples": n_samples, "percentage_of_samples": p_samples})
-    ALResult.to_csv(f"{path}al_results/ALResult_{source_domain}_{target_domain}_{query_strategy}_{run_id}.csv", index = False)
-    print(ALResult, flush=True)
+    ALResult.to_csv(f"/home/aksv/NLP_assignments/Project/al_results/ALResult_{source_domain}_{target_domain}_{query_strategy}.csv", index = False)
 
 while n_attempts < max_attempts and batch_size > 0:
 
     try:
         perform_active_learning(batch_size=batch_size,
-                                num_queries=num_queries,
+                                query_size=query_size,
+                                pool_size=pool_size,
                                 query_strategy=query_strategy,
                                 num_epochs=num_epochs,
                                 learning_rate=learning_rate,
                                 patience=patience,
                                 target_domain=target_domain,
                                 source_domain = source_domain,
-                                path=path,
-                                run_id=run_id)
+                                path=path)
 
         break
-    except Exception as e: #torch.cuda.OutOfMemoryError as e: 
+    except Exception as e: 
         print(f"MemoryError: Reducing batchsize to batch size {batch_size - 2}", flush = True)
         batch_size -= 2
         n_attempts += 1
