@@ -1,7 +1,7 @@
 utils/__pycache__
 !data/jaccard.pkl
 !data/similarity.pkl
-data
+data/*
 .vscode
 __pycache__
 Trained_models
