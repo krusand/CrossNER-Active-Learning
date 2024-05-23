@@ -39,7 +39,7 @@ The active learning saves models to `fine_tuned/active_learning/`, and results t
 ## F1-scores
 `f1_scores.py` can be used to test a model on a domain. In the `f1_scores.py` script, you should specify the models and filters you want to evaluate. Furthermore you should specify the model folder and f1 score save path. To test the pre-fine-tuned news model on conversation, social media, legal and the whole dataset, we used the following `f1_scores.py` setup:
 
-```
+```python
 # Load data
 train_path = "data/BIOtrain.parquet"
 dev_path = "data/BIOdev.parquet"
