@@ -24,6 +24,8 @@ filter_padding = args.attention_mask if args.attention_mask is not None else Tru
 jointly = args.jointly if args.jointly is not None else False
 filter = ["News", args.filter] if jointly else args.filter
 
+path = "fine_tuned/regularized/"
+
 print(filter, flush=True)
 
 device_name = torch.cuda.get_device_name(0)
@@ -36,7 +38,7 @@ N_EPOCHS = 10000
 LEARNING_RATE = 1e-05
 
 batch_size = memory
-max_attempts = batch_size
+max_attempts = batch_size // 2
 n_attempts = 0
 
 if torch.backends.mps.is_available():
@@ -78,16 +80,17 @@ while n_attempts < max_attempts and batch_size > 0:
 
         print("Beginning training", flush=True)
 
+        model_path = f"{path}news_and_{args.filter}_finetuned.pt" if jointly else f"{path}{filter}_finetuned.pt"
         model.fit(num_epochs=N_EPOCHS, 
                 train_data_loader=train_loader, 
                 val_data_loader=dev_loader,
                 device=device, 
                 optimizer=torch.optim.Adam(params=model.parameters(), lr=LEARNING_RATE, weight_decay=0.01),
-                path=f"fine_tuned/regularized/third/news_and_{filter}_finetuned.pt")
+                path=model_path)
 
-        print(f"Model: 'third/{filter}_finetuned' finished")
+        print(f"Model: '{filter}_finetuned' finished")
         break
-    except Exception as e: 
+    except torch.cuda.OutOfMemoryError: 
         print(f"MemoryError. Reducing batchsize to batch size {batch_size - 2}", flush=True)
         batch_size -= 2
         n_attempts += 1

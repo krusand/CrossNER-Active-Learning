@@ -22,7 +22,7 @@ import argparse
 
 ### EDIT ###
 # Specify the path to the source domain models
-path = "/home/idwe/NLP/Project/"
+path = "fine_tuned/regularized/"
 
 parser = argparse.ArgumentParser(description="NER Active Learning Script")
 parser.add_argument("-t", "--target", type=str, help="Specify the target domain for active learning")
@@ -36,17 +36,16 @@ args = parser.parse_args()
 target_domain = args.target
 source_domain = args.source
 query_strategy = args.query
-filter_padding = args.attention_mask
-run_id = args.run_id
+filter_padding = args.attention_mask if args.attention_mask is not None else True
+run_id = args.run_id if args.run_id is not None else ''
 
-print(f"Starting script:\n{query_strategy = }\n{target_domain = }\n{source_domain = }\n", flush=True)
+print(f"Starting script:\n{query_strategy = }\n{target_domain = }\n{source_domain = }\n{run_id = }\n", flush=True)
 
-max_attempts = 75
-n_attempts = 0
 num_queries = 20
-
 memory = int(round(int(torch.cuda.get_device_properties(0).total_memory) / 1000000000))
 batch_size = memory
+max_attempts = memory //2
+n_attempts = 0
 
 # Model parameters to specify
 num_epochs = 10000
@@ -55,10 +54,8 @@ patience = 10
 
 tags, index2tag, tag2index = nu.load_vocabs()
 
-print(torch.cuda.get_device_name(0))
+print(torch.cuda.get_device_name(0), flush=True)
 
-if "2070" in torch.cuda.get_device_name(0):
-    batch_size = 7
 
 ###########
 def perform_active_learning(batch_size,
@@ -72,18 +69,16 @@ def perform_active_learning(batch_size,
                             path,
                             run_id):
     
-    model_save_path = path + "fine_tuned/active_learning/" + f"model_{source_domain}_{target_domain}_{query_strategy}"
+    model_save_path = "fine_tuned/active_learning/" + f"model_{source_domain}_{target_domain}_{query_strategy}"
     
     # Specify path for data
     train_path = path + "data/BIOtrain.parquet"
     dev_path = path + "data/BIOdev.parquet"
-    test_path = path + "data/BIOtest.parquet"
 
     # Define tokenizer
     bert_model_name = "bert-base-multilingual-cased"
     bert_tokenizer = AutoTokenizer.from_pretrained(bert_model_name)
 
-    # Pretrained Bert Model
     if torch.backends.mps.is_available():
         device = torch.device("mps")
     elif torch.cuda.is_available():
@@ -130,7 +125,7 @@ def perform_active_learning(batch_size,
     # Reset model and optimizer 
     print("Recompile model")
     model = BertForTokenClassification.from_pretrained(bert_model_name, config=bert_config, tags=tags, patience=patience, verbose=True, filter_padding = filter_padding).to(device)
-    model.load_state_dict(torch.load(path + "fine_tuned/" + source_domain + "_finetuned.pt", map_location=device))
+    model.load_state_dict(torch.load(path + source_domain + "_finetuned.pt", map_location=device))
     optimizer = torch.optim.Adam(params=model.parameters(), lr=learning_rate, weight_decay = 0.01)
 
     # Ask the oracle to label samples using one of the strategies
@@ -230,7 +225,7 @@ while n_attempts < max_attempts and batch_size > 0:
                                 run_id=run_id)
 
         break
-    except Exception as e: #torch.cuda.OutOfMemoryError as e: 
+    except torch.cuda.OutOfMemoryError: 
         print(f"MemoryError: Reducing batchsize to batch size {batch_size - 2}", flush = True)
         batch_size -= 2
         n_attempts += 1

@@ -29,47 +29,11 @@ tags, index2tag, tag2index = nu.load_vocabs()
 train_path = "data/BIOtrain.parquet"
 dev_path = "data/BIOdev.parquet"
 test_path = "data/BIOtest.parquet"
-al_model_path = "/home/aksv/NLP_assignments/Project/fine_tuned/active_learning/third/"
-ft_model_path = "/home/aksv/NLP_assignments/Project/fine_tuned/regularized/third/"
-# models = ["news_and_Conversation_finetuned","news_and_Social Media_finetuned", "news_and_Legal_finetuned"]
+model_path = "fine_tuned/regularized/"
+save_path = 'f1_scores/f1_scores.pkl'
 
-
-models = [
-"model_News_Social Media_margin",
-"model_News_Social Media_confidence",
-"model_News_Social Media_random",
-"model_News_Legal_margin",
-"model_News_Legal_confidence",
-"model_News_Legal_random",
-"model_News_Conversation_margin",
-"model_News_Conversation_confidence",
-"model_News_Conversation_random",
-"Conversation_finetuned",
-"News_finetuned",
-"Legal_finetuned",
-"Social Media_finetuned",
-"news_and_Conversation_finetuned",
-"news_and_Legal_finetuned",
-"news_and_Social Media_finetuned"]
-
-model_paths = [al_model_path,
-al_model_path,
-al_model_path,
-al_model_path,
-al_model_path,
-al_model_path,
-al_model_path,
-al_model_path,
-al_model_path,
-ft_model_path,
-ft_model_path,
-ft_model_path,
-ft_model_path,
-ft_model_path,
-ft_model_path,
-ft_model_path]
-
-filters = [None]
+models = ["News"]
+filters = ["Conversation", "Social Media", "Legal", None]
 
 batch_size = memory
 
@@ -77,7 +41,7 @@ f1_scores = {model: dict() for model in models}
 
 print("Starting model testing", flush=True)
 
-for model_type,model_path in zip(models, model_paths):
+for model_type in models:
     print(f"Starting model {model_type}", flush=True)
 
     # Set device
@@ -102,7 +66,7 @@ for model_type,model_path in zip(models, model_paths):
     model = BertForTokenClassification.from_pretrained(bert_model_name, config=bert_config, tags=tags, verbose=True).to(device)
 
     # Load model
-    model.load_state_dict(torch.load(f"{model_path}{model_type}.pt", map_location=device))
+    model.load_state_dict(torch.load(f"{model_path}{model_type}_finetuned.pt", map_location=device))
 
     model.eval()
 
@@ -125,12 +89,10 @@ for model_type,model_path in zip(models, model_paths):
         print(f"{f1score = }\n{model_type = }\n{filter = }\n")
         f1_scores[model_type][filter] = f1score
 
-    save_path = 'f1_scores/f1_scores_whole_dataset.pkl'
-
-    print(save_path)
-
     with open(save_path, 'wb') as fp:
         pickle.dump(f1_scores, fp)
+
+    print(f"Saved f1 scores to {save_path}", flush=True)
 
 end_time = time.time()
 run_time = (end_time - start_time)
