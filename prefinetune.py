@@ -8,7 +8,7 @@ import pandas as pd
 import numpy as np
 import random
 
-from utils.model_new import BertForTokenClassification
+from model import BertForTokenClassification
 import utils.NERutils as nu
 
 from transformers import AutoConfig, AutoTokenizer

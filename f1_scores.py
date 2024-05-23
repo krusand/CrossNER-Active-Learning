@@ -5,7 +5,7 @@ start_time = time.time()
 import torch
 import pickle
 
-from utils.model import BertForTokenClassification
+from model import BertForTokenClassification
 import utils.NERutils as nu
 
 from transformers import AutoConfig, AutoTokenizer
