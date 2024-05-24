@@ -10,6 +10,6 @@
 
 module load Anaconda3
 eval "$(conda shell.bash hook)"
-source activate beatgpt3
+source activate NLP2024
 python3 hpc_script.py -f "Social Media" -am T
 
