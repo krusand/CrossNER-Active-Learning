@@ -36,7 +36,7 @@ python ActiveLearning.py -t "Conversation" -s "News" -q "vocab" -am True -ri 1
 
 The active learning saves models to `fine_tuned/active_learning/`, and results to `al_results/`. The results saved in `al_results/` are results showing the development of span-f1 as the percentage of data used increases. 
 
-The file *create_env.job* contains information about the packages and version used during training. 
+The file `create_env.job` contains information about the packages and version used during training. 
 
 ## F1-scores
 `f1_scores.py` can be used to test a model on a domain. In the `f1_scores.py` script, you should specify the models and filters you want to evaluate. Furthermore you should specify the model folder and f1 score save path. To test the pre-fine-tuned news model on conversation, social media, legal and the whole dataset, we used the following `f1_scores.py` setup:
