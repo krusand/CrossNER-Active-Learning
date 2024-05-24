@@ -1,9 +1,9 @@
 #!/bin/bash
 
 #SBATCH --job-name=NERFineTune       # Job name
-#SBATCH --output=jobs_ran/finetune/NERFineTune.%j.out         # Name of output file (%j expands to jobId)
+#SBATCH --output=NERFineTune.%j.out         # Name of output file (%j expands to jobId)
 #SBATCH --cpus-per-task=2               # Schedule 8 cores (includes hyperthreading)
-#SBATCH --constraint="gpu_a100_40gb|gpu_rtx8000|gpu_rtx6000|gpu_a30"
+#SBATCH --constraint="gpu_a100_40gb|gpu_rtx8000|gpu_a30"
 #SBATCH --gres=gpu:1
 #SBATCH --time=48:00:00                 # Run time (hh:mm:ss)
 #SBATCH --partition=brown               # Run on either the Red or Brown queue
