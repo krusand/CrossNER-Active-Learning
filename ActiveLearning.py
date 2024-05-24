@@ -72,8 +72,8 @@ def perform_active_learning(batch_size,
     model_save_path = "fine_tuned/active_learning/" + f"model_{source_domain}_{target_domain}_{query_strategy}"
     
     # Specify path for data
-    train_path = path + "data/BIOtrain.parquet"
-    dev_path = path + "data/BIOdev.parquet"
+    train_path = "data/BIOtrain.parquet"
+    dev_path = "data/BIOdev.parquet"
 
     # Define tokenizer
     bert_model_name = "bert-base-multilingual-cased"
