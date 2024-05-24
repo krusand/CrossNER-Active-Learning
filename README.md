@@ -67,6 +67,7 @@ models: list[str] = ["News_finetuned"]
 filters: list[str] = ["Conversation", "Social Media", "Legal", None]
 ```
 
+The file `f1_scores.job` shows how we ran got f1 scores on the hpc.
 
 ## Plots
 `Results.ipynb` contains the code for the plots presented in the report. 
