@@ -299,22 +299,12 @@ class BertForTokenClassification(BertPreTrainedModel):
                 
                 ids = batch["input_ids"].to(device, dtype=torch.long)
                 mask = batch["attention_mask"].to(device, dtype=torch.long)
-                # targets = batch["labels"].to(device, dtype=torch.long)
                 
                 outputs = self(ids, mask)
-                
-                # Save validation loss
-                # print(type(outputs[0]))
-                # outputs = [o[torch.nonzero(m)] for o,m in zip(outputs[0], mask)]
-                # print(outputs[0].shape, mask.shape)
-                # print(torch.nonzero(mask))
+
                 logits.extend(outputs[0])
                 masks.extend(mask)
                 indices.extend(batch["index"])
 
         return (logits, masks, indices)
         
-#*******************
-#***   Dataset   ***
-#*******************
-
