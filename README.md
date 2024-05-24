@@ -8,21 +8,31 @@ Our data was initially not publicly available, but was requested to be made publ
 
 The tags in the dataset used the tagging standard found in Ontonotes 5.0. This means there are 18 tags. We converted these tags to Beginning-Inside-Outside (BIO) tagging using the script `bio_tag_convert.py`. 
 
+## Setting up environment
+
+The file `create_env.job` will create a conda environment when run on the *hpc*. It uses the `environment.yml` file.
+
 ## Model
 Our model is build on a pre-trained multilingual BERT model. Specifically we used *bert-base-multilingual-cased*. The model structure can be seen in `model.py`, which also uses functions from `NERutils.py`. It is generally recommended to use a GPU supporting CUDA for all model work like fine-tuning and evaluating.
 
 ## Pre-fine-tuning
 To pre-fine-tune a model means to fit a model to a *source domain*. Pre-fine-tuning is done using `prefinetune.py`. To run the script, one can specify the *source domain (-f), attention_mask (-am), jointly (-j)* arguments. For our source domain model *News*, we ran the script with the following arguments. 
+
 ```sh
 python prefinetune.py -f "News" -am True
 ```
+
 To jointly fit on *News* and a target domain, for example *Legal*, we used the following arguments
+
 ```sh
 python prefinetune.py -f "Legal" -am True -j True
 ```
+
 The *-am* argument is used to specify whether the padding should be filtered out when calculating the loss. We found that when this is true, the model fitted the dataset a lot better. Therefore we kept this to be true for all fitting.
 
 The model is by default saved to the folder `fine_tuned/regularized/{filter}_finetuned.pt`. The folder can be changed in the script. The fit-method in the model class automatically saves the model as a .pt file. The default save path is to `checkpoint.pt` in the folder the script is running from.
+
+The file `prefinetune.job` shows how we ran the job on the *hpc*
 
 ## Active learning setup
 The active learning is performed using the script `ActiveLearning.py`. You have to specify three parameters to run the script *source domain, target domain, query strategy*, and optionally specify *attention mask and run_id*. 
@@ -36,7 +46,7 @@ python ActiveLearning.py -t "Conversation" -s "News" -q "vocab" -am True -ri 1
 
 The active learning saves models to `fine_tuned/active_learning/`, and results to `al_results/`. The results saved in `al_results/` are results showing the development of span-f1 as the percentage of data used increases. 
 
-The file `create_env.job` contains information about the packages and version used during training. 
+The `AL.job` file shows how we ran active learning on the *hpc*.
 
 ## F1-scores
 `f1_scores.py` can be used to test a model on a domain. In the `f1_scores.py` script, you should specify the models and filters you want to evaluate. Furthermore you should specify the model folder and f1 score save path. To test the pre-fine-tuned news model on conversation, social media, legal and the whole dataset, we used the following `f1_scores.py` setup:
